@@ -1,5 +1,6 @@
 .env
 .mcp.json
+CLAUDE.md
 # Logs
 logs
 *.log

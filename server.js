@@ -54,7 +54,7 @@ app.get('/api/entries', async (_req, res) => {
 app.post('/api/entries', async (req, res) => {
   try {
     const id = DATABASE_ID
-    const { name, status, priority, date } = req.body
+    const { name, status, priority, date, assignedTo } = req.body
 
     const properties = {
       Name: { title: [{ text: { content: name } }] },
@@ -62,6 +62,7 @@ app.post('/api/entries', async (req, res) => {
     if (status) properties.Status = { select: { name: status } }
     if (priority) properties.Priority = { select: { name: priority } }
     if (date) properties.Date = { date: { start: date } }
+    if (assignedTo) properties['Assigned To'] = { rich_text: [{ text: { content: assignedTo } }] }
 
     const page = await notion.pages.create({
       parent: { database_id: id },
@@ -76,13 +77,14 @@ app.post('/api/entries', async (req, res) => {
 
 app.patch('/api/entries/:id', async (req, res) => {
   try {
-    const { name, status, priority, date } = req.body
+    const { name, status, priority, date, assignedTo } = req.body
     const properties = {}
 
     if (name !== undefined) properties.Name = { title: [{ text: { content: name } }] }
     if (status !== undefined) properties.Status = { select: { name: status } }
     if (priority !== undefined) properties.Priority = { select: { name: priority } }
     if (date !== undefined) properties.Date = { date: date ? { start: date } : null }
+    if (assignedTo !== undefined) properties['Assigned To'] = { rich_text: [{ text: { content: assignedTo } }] }
 
     const page = await notion.pages.update({
       page_id: req.params.id,
@@ -184,6 +186,7 @@ function mapPage(page) {
     status: props.Status?.select?.name || 'Not Started',
     priority: props.Priority?.select?.name || 'Medium',
     date: props.Date?.date?.start || null,
+    assignedTo: props['Assigned To']?.rich_text?.[0]?.plain_text || '',
     createdAt: page.created_time,
   }
 }

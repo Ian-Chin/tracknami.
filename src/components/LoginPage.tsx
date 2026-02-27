@@ -4,7 +4,12 @@ import { cn } from '@/lib/utils'
 import { DottedSurface } from '@/components/ui/dotted-surface'
 
 interface LoginPageProps {
-  onLogin: () => void
+  onLogin: (role: Role) => void
+}
+
+const CREDENTIALS: Record<Role, { email: string; password: string }> = {
+  admin: { email: 'admin@nexus.io', password: 'awdad123412e412412ascasfasf' },
+  employee: { email: 'employee@nexus.io', password: 'asdafsasf123412412dsgfasfa' },
 }
 
 type Role = 'admin' | 'employee'
@@ -15,13 +20,27 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [role, setRole] = useState<Role>('admin')
+  const [loginError, setLoginError] = useState('')
+
+  const selectRole = (r: Role) => {
+    setRole(r)
+    setEmail(CREDENTIALS[r].email)
+    setPassword(CREDENTIALS[r].password)
+    setLoginError('')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const valid = CREDENTIALS[role]
+    if (email !== valid.email || password !== valid.password) {
+      setLoginError('Invalid email or password for the selected role.')
+      return
+    }
+    setLoginError('')
     setLoading(true)
     await new Promise((r) => setTimeout(r, 800))
     setLoading(false)
-    onLogin()
+    onLogin(role)
   }
 
   return (
@@ -66,7 +85,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setRole('admin')}
+                    onClick={() => selectRole('admin')}
                     className={cn(
                       'group flex items-center gap-2.5 rounded-xl border px-4 py-3 transition-all duration-300',
                       role === 'admin'
@@ -95,7 +114,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
                   <button
                     type="button"
-                    onClick={() => setRole('employee')}
+                    onClick={() => selectRole('employee')}
                     className={cn(
                       'group flex items-center gap-2.5 rounded-xl border px-4 py-3 transition-all duration-300',
                       role === 'employee'
@@ -176,6 +195,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   Remember me for 30 days
                 </label>
               </div>
+
+              {/* Error message */}
+              {loginError && (
+                <p className="text-sm text-red-400 animate-fade-up">{loginError}</p>
+              )}
 
               {/* Submit */}
               <button

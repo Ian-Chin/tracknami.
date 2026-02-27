@@ -1,18 +1,20 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import type { CreateEntryInput } from '@/services/NotionService'
+import type { CreateEntryInput, TeamMember } from '@/services/NotionService'
 
 interface AddEntryModalProps {
   open: boolean
   onClose: () => void
   onSubmit: (data: CreateEntryInput) => Promise<unknown>
+  teamMembers?: TeamMember[]
 }
 
-export function AddEntryModal({ open, onClose, onSubmit }: AddEntryModalProps) {
+export function AddEntryModal({ open, onClose, onSubmit, teamMembers = [] }: AddEntryModalProps) {
   const [name, setName] = useState('')
   const [status, setStatus] = useState('Not Started')
   const [priority, setPriority] = useState('Medium')
   const [date, setDate] = useState('')
+  const [assignedTo, setAssignedTo] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   if (!open) return null
@@ -28,11 +30,13 @@ export function AddEntryModal({ open, onClose, onSubmit }: AddEntryModalProps) {
         status,
         priority,
         date: date || undefined,
+        assignedTo: assignedTo || undefined,
       })
       setName('')
       setStatus('Not Started')
       setPriority('Medium')
       setDate('')
+      setAssignedTo('')
       onClose()
     } finally {
       setSubmitting(false)
@@ -123,6 +127,27 @@ export function AddEntryModal({ open, onClose, onSubmit }: AddEntryModalProps) {
               className="h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 text-sm text-white/70 outline-none transition-all focus:border-white/[0.25]"
             />
           </div>
+
+          {/* Assigned To */}
+          {teamMembers.length > 0 && (
+            <div>
+              <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-white/40">
+                Assigned To
+              </label>
+              <select
+                value={assignedTo}
+                onChange={(e) => setAssignedTo(e.target.value)}
+                className="h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 text-sm text-white/70 outline-none transition-all focus:border-white/[0.25]"
+              >
+                <option value="">Unassigned</option>
+                {teamMembers.map((m) => (
+                  <option key={m.id} value={m.name}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-3">

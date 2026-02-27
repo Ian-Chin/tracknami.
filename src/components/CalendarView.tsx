@@ -142,8 +142,6 @@ export function CalendarView() {
         // Which grid column is this day in?
         const gridCol = firstDay + currentDay - 1
         const calendarRow = Math.floor(gridCol / 7)
-        const colInRow = gridCol % 7
-
         // Find end of this segment (end of week row or end of bar)
         const endOfWeekDay = (calendarRow + 1) * 7 - firstDay // day number at end of this calendar row
         const segEnd = Math.min(clampedEnd, endOfWeekDay)

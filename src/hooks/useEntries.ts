@@ -32,6 +32,7 @@ export function useEntries() {
       status: input.status || 'Not Started',
       priority: input.priority || 'Medium',
       date: input.date || null,
+      assignedTo: input.assignedTo || '',
       createdAt: new Date().toISOString(),
     }
     setEntries((prev) => [optimistic, ...prev])

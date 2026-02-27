@@ -3,38 +3,47 @@ import { Sidebar } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
 import { StatsCards } from '@/components/StatsCards'
 import { DataTable } from '@/components/DataTable'
+import { DashboardCharts } from '@/components/DashboardCharts'
 import { AddEntryModal } from '@/components/AddEntryModal'
 import { TeamTable } from '@/components/TeamTable'
 import { CalendarView } from '@/components/CalendarView'
 import { LoginPage } from '@/components/LoginPage'
 import { useEntries } from '@/hooks/useEntries'
+import { useTeam } from '@/hooks/useTeam'
+import { useLeave } from '@/hooks/useLeave'
 import { RefreshCw, AlertCircle } from 'lucide-react'
 
-type Page = 'dashboard' | 'team' | 'calendar' | 'login'
+type Page = 'dashboard' | 'team' | 'calendar' | 'task' | 'login'
+type UserRole = 'admin' | 'employee' | null
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [activePage, setActivePage] = useState<Page>('dashboard')
+  const [activePage, setActivePage] = useState<Page>('login')
+  const [_userRole, setUserRole] = useState<UserRole>(null)
+  const [taskFilterMember, setTaskFilterMember] = useState<string | null>(null)
 
   const { entries, loading, error, addEntry, updateEntry, deleteEntry, refresh } =
     useEntries()
+  const { members: teamMembers } = useTeam()
+  const { records: leaveRecords } = useLeave()
 
-  const filteredEntries = useMemo(() => {
-    if (!searchQuery.trim()) return entries
-    const q = searchQuery.toLowerCase()
-    return entries.filter(
-      (e) =>
-        e.name.toLowerCase().includes(q) ||
-        e.status.toLowerCase().includes(q) ||
-        e.priority.toLowerCase().includes(q)
-    )
-  }, [entries, searchQuery])
+  const taskEntries = useMemo(() => {
+    if (!taskFilterMember) return entries
+    return entries.filter((e) => e.assignedTo === taskFilterMember)
+  }, [entries, taskFilterMember])
 
   // Login page — full screen, no sidebar/header
   if (activePage === 'login') {
-    return <LoginPage onLogin={() => setActivePage('dashboard')} />
+    return (
+      <LoginPage
+        onLogin={(role) => {
+          setUserRole(role)
+          setActivePage('dashboard')
+        }}
+      />
+    )
   }
 
   return (
@@ -75,34 +84,67 @@ function App() {
 
               <StatsCards entries={entries} />
 
-              <div className="mt-8 mb-4 flex items-center justify-between animate-fade-up stagger-4">
+              <DashboardCharts
+                entries={entries}
+                teamMembers={teamMembers}
+                leaveRecords={leaveRecords}
+              />
+            </>
+          )}
+
+          {activePage === 'task' && (
+            <>
+              <div className="mb-4 flex items-center justify-between animate-fade-up">
                 <div>
-                  <h2 className="text-sm font-semibold text-white/80">Recent Entries</h2>
+                  <h2 className="text-sm font-semibold text-white/80">
+                    {taskFilterMember ? `Tasks — ${taskFilterMember}` : 'All Tasks'}
+                  </h2>
                   <p className="mt-0.5 text-xs text-white/30">
-                    Synced from your Notion workspace
+                    {taskFilterMember
+                      ? 'Showing tasks for this team member'
+                      : 'Manage and assign tasks to team members'}
                   </p>
                 </div>
-                <button
-                  onClick={refresh}
-                  disabled={loading}
-                  className="flex h-9 items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3.5 text-xs font-medium text-white/40 transition-all hover:border-white/[0.15] hover:text-white/70 hover:shadow-[0_0_15px_rgba(255,255,255,0.04)] disabled:opacity-30"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </button>
+                <div className="flex items-center gap-2">
+                  {taskFilterMember && (
+                    <button
+                      onClick={() => setTaskFilterMember(null)}
+                      className="flex h-9 items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3.5 text-xs font-medium text-white/40 transition-all hover:border-white/[0.15] hover:text-white/70"
+                    >
+                      Show All
+                    </button>
+                  )}
+                  <button
+                    onClick={refresh}
+                    disabled={loading}
+                    className="flex h-9 items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3.5 text-xs font-medium text-white/40 transition-all hover:border-white/[0.15] hover:text-white/70 hover:shadow-[0_0_15px_rgba(255,255,255,0.04)] disabled:opacity-30"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
+                </div>
               </div>
-
               <DataTable
-                entries={filteredEntries}
+                entries={taskEntries}
                 loading={loading}
                 onDelete={deleteEntry}
                 onStatusChange={(id, status) => updateEntry(id, { status })}
+                onAssignChange={(id, assignedTo) => updateEntry(id, { assignedTo })}
+                teamMembers={teamMembers}
               />
             </>
           )}
 
           {activePage === 'calendar' && <CalendarView />}
-          {activePage === 'team' && <TeamTable />}
+          {activePage === 'team' && (
+            <TeamTable
+              entries={entries}
+              onNavigateToMemberTasks={(memberName) => {
+                setTaskFilterMember(memberName)
+                setActivePage('task')
+              }}
+            />
+          )}
         </div>
       </main>
 
@@ -110,6 +152,7 @@ function App() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSubmit={addEntry}
+        teamMembers={teamMembers}
       />
     </div>
   )

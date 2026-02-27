@@ -1,7 +1,7 @@
 import {
   LayoutDashboard,
   CalendarDays,
-  BarChart3,
+  ListTodo,
   Settings,
   Users,
   Zap,
@@ -10,13 +10,13 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Page = 'dashboard' | 'team' | 'calendar' | 'login'
+type Page = 'dashboard' | 'team' | 'calendar' | 'task' | 'login'
 
 const navItems: { icon: typeof LayoutDashboard; label: string; page?: Page }[] = [
   { icon: LayoutDashboard, label: 'Dashboard', page: 'dashboard' },
   { icon: CalendarDays, label: 'Calendar', page: 'calendar' },
   { icon: Users, label: 'Team', page: 'team' },
-  { icon: BarChart3, label: 'Analytics' },
+  { icon: ListTodo, label: 'Task', page: 'task' },
   { icon: Settings, label: 'Settings' },
 ]
 

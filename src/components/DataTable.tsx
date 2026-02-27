@@ -1,12 +1,18 @@
-import { Trash2, Calendar, MoreHorizontal } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Trash2, Calendar, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Entry } from '@/services/NotionService'
+import type { TeamMember } from '@/services/NotionService'
+
+const PAGE_SIZE = 10
 
 interface DataTableProps {
   entries: Entry[]
   loading: boolean
   onDelete: (id: string) => void
   onStatusChange: (id: string, status: string) => void
+  onAssignChange?: (id: string, assignedTo: string) => void
+  teamMembers?: TeamMember[]
 }
 
 const statusStyles: Record<string, { bg: string; text: string; dot: string }> = {
@@ -34,7 +40,15 @@ const priorityStyles: Record<string, { bg: string; text: string }> = {
   Urgent: { bg: 'bg-red-500/15', text: 'text-red-400' },
 }
 
-export function DataTable({ entries, loading, onDelete, onStatusChange }: DataTableProps) {
+export function DataTable({ entries, loading, onDelete, onStatusChange, onAssignChange, teamMembers = [] }: DataTableProps) {
+  const [currentPage, setCurrentPage] = useState(1)
+  const totalPages = Math.ceil(entries.length / PAGE_SIZE)
+  const paginatedEntries = entries.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [entries])
+
   if (loading) {
     return (
       <div className="glow-card">
@@ -76,7 +90,7 @@ export function DataTable({ entries, loading, onDelete, onStatusChange }: DataTa
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/[0.06]">
-                {['Name', 'Status', 'Priority', 'Date', ''].map((h) => (
+                {['Name', 'Status', 'Priority', 'Assigned To', 'Date', ''].map((h) => (
                   <th
                     key={h}
                     className="px-5 py-3 text-left text-[10px] font-medium uppercase tracking-[0.15em] text-white/30"
@@ -87,7 +101,7 @@ export function DataTable({ entries, loading, onDelete, onStatusChange }: DataTa
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry, i) => {
+              {paginatedEntries.map((entry, i) => {
                 const status = statusStyles[entry.status] || statusStyles['Not Started']
                 const priority = priorityStyles[entry.priority] || priorityStyles['Low']
 
@@ -131,6 +145,26 @@ export function DataTable({ entries, loading, onDelete, onStatusChange }: DataTa
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
+                      {teamMembers.length > 0 && onAssignChange ? (
+                        <select
+                          value={entry.assignedTo || ''}
+                          onChange={(e) => onAssignChange(entry.id, e.target.value)}
+                          className="cursor-pointer rounded-lg border-0 bg-white/[0.06] px-2.5 py-1 text-[11px] font-medium text-white/50 outline-none transition-all hover:bg-white/[0.1]"
+                        >
+                          <option value="">Unassigned</option>
+                          {teamMembers.map((m) => (
+                            <option key={m.id} value={m.name}>
+                              {m.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-xs text-white/35">
+                          {entry.assignedTo || '—'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5">
                       <span className="text-xs font-mono text-white/35">
                         {entry.date
                           ? new Date(entry.date).toLocaleDateString('en-US', {
@@ -160,6 +194,30 @@ export function DataTable({ entries, loading, onDelete, onStatusChange }: DataTa
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-white/[0.08] px-5 py-3">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] px-3 text-xs font-medium text-white/40 transition-all hover:border-white/[0.15] hover:text-white/70 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Previous
+            </button>
+            <span className="text-xs font-mono text-white/40">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] px-3 text-xs font-medium text-white/40 transition-all hover:border-white/[0.15] hover:text-white/70 disabled:opacity-30 disabled:pointer-events-none"
+            >
+              Next
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

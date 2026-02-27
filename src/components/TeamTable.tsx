@@ -1,4 +1,5 @@
-import { RefreshCw, Users, Mail } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { RefreshCw, Users, Mail, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTeam } from '@/hooks/useTeam'
 
@@ -39,8 +40,24 @@ const deptStyles: Record<string, string> = {
   HR: 'bg-emerald-500/15 text-emerald-400',
 }
 
-export function TeamTable() {
+import type { Entry } from '@/services/NotionService'
+
+interface TeamTableProps {
+  entries?: Entry[]
+  onNavigateToMemberTasks?: (memberName: string) => void
+}
+
+const PAGE_SIZE = 10
+
+export function TeamTable({ entries = [], onNavigateToMemberTasks }: TeamTableProps) {
   const { members, loading, error, updateStatus, refresh } = useTeam()
+  const [currentPage, setCurrentPage] = useState(1)
+  const totalPages = Math.ceil(members.length / PAGE_SIZE)
+  const paginatedMembers = members.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [members])
 
   const statusCounts = allStatuses.map((s) => ({
     label: s,
@@ -132,7 +149,7 @@ export function TeamTable() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/[0.06]">
-                    {['Name', 'Role', 'Department', 'Status', 'Email'].map((h) => (
+                    {['Name', 'Role', 'Department', 'Status', 'Tasks', 'Email'].map((h) => (
                       <th
                         key={h}
                         className="px-5 py-3 text-left text-[10px] font-medium uppercase tracking-[0.15em] text-white/30"
@@ -143,7 +160,7 @@ export function TeamTable() {
                   </tr>
                 </thead>
                 <tbody>
-                  {members.map((member, i) => {
+                  {paginatedMembers.map((member, i) => {
                     const style = statusStyles[member.status] || statusStyles['Available']
 
                     return (
@@ -162,9 +179,12 @@ export function TeamTable() {
                                 .map((n) => n[0])
                                 .join('')}
                             </div>
-                            <span className="text-sm font-medium text-white/90">
+                            <button
+                              onClick={() => onNavigateToMemberTasks?.(member.name)}
+                              className="text-sm font-medium text-white/90 hover:text-white hover:underline transition-colors text-left"
+                            >
                               {member.name}
-                            </span>
+                            </button>
                           </div>
                         </td>
                         <td className="px-5 py-3.5">
@@ -197,6 +217,11 @@ export function TeamTable() {
                           </select>
                         </td>
                         <td className="px-5 py-3.5">
+                          <span className="rounded-lg bg-white/[0.06] px-2.5 py-1 text-[11px] font-mono font-medium text-white/50">
+                            {entries.filter((e) => e.assignedTo === member.name).length}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5">
                           <a
                             href={`mailto:${member.email}`}
                             className="flex items-center gap-1.5 text-xs text-white/30 transition-all hover:text-white/60"
@@ -211,6 +236,30 @@ export function TeamTable() {
                 </tbody>
               </table>
             </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-white/[0.08] px-5 py-3">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] px-3 text-xs font-medium text-white/40 transition-all hover:border-white/[0.15] hover:text-white/70 disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  Previous
+                </button>
+                <span className="text-xs font-mono text-white/40">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] px-3 text-xs font-medium text-white/40 transition-all hover:border-white/[0.15] hover:text-white/70 disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  Next
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

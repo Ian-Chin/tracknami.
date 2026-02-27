@@ -4,6 +4,7 @@ export interface Entry {
   status: string
   priority: string
   date: string | null
+  assignedTo: string
   createdAt: string
 }
 
@@ -12,6 +13,7 @@ export interface CreateEntryInput {
   status?: string
   priority?: string
   date?: string
+  assignedTo?: string
 }
 
 export interface TeamMember {
