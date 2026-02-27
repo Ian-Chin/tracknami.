@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:developers.notion.com)",
+      "Bash(node setup-team.js:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}
