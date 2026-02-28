@@ -4,12 +4,13 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 import { cn } from '@/lib/utils'
-import type { Entry, TeamMember, LeaveRecord } from '@/services/NotionService'
+import type { Entry, TeamMember, LeaveRecord, TimeLog } from '@/services/NotionService'
 
 interface DashboardChartsProps {
   entries: Entry[]
   teamMembers: TeamMember[]
   leaveRecords: LeaveRecord[]
+  timeLogs: TimeLog[]
 }
 
 const COLORS = {
@@ -36,14 +37,6 @@ const PRIORITY_COLORS: Record<string, string> = {
   Urgent: COLORS.red,
 }
 
-const DEPT_COLORS: Record<string, string> = {
-  Engineering: COLORS.blue,
-  Design: COLORS.pink,
-  Marketing: COLORS.orange,
-  Operations: COLORS.white,
-  HR: COLORS.emerald,
-}
-
 const LEAVE_COLORS: Record<string, string> = {
   'Annual Leave': COLORS.yellow,
   MC: COLORS.red,
@@ -63,12 +56,19 @@ const LEAVE_STYLES: Record<string, { bg: string; text: string }> = {
 const axisStyle = { fill: 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: 'JetBrains Mono, monospace' }
 const gridStyle = { stroke: 'rgba(255,255,255,0.06)' }
 
-function CustomTooltip({ active, payload, label }: any) {
+interface TooltipPayloadItem {
+  name: string
+  value: number
+  color?: string
+  fill?: string
+}
+
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: TooltipPayloadItem[]; label?: string }) {
   if (!active || !payload?.length) return null
   return (
     <div className="rounded-lg border border-white/[0.1] bg-[#1a1a1a] px-3 py-2 shadow-xl">
       {label && <p className="mb-1 text-[11px] font-mono text-white/50">{label}</p>}
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i: number) => (
         <p key={i} className="text-xs text-white/80">
           <span className="inline-block h-2 w-2 rounded-full mr-1.5" style={{ backgroundColor: p.color || p.fill }} />
           {p.name}: <span className="font-mono font-semibold">{p.value}</span>
@@ -97,7 +97,7 @@ function groupBy<T>(arr: T[], key: (item: T) => string): Record<string, T[]> {
   }, {} as Record<string, T[]>)
 }
 
-export function DashboardCharts({ entries, teamMembers, leaveRecords }: DashboardChartsProps) {
+export function DashboardCharts({ entries, teamMembers, leaveRecords, timeLogs }: DashboardChartsProps) {
   const statusData = useMemo(() => {
     const grouped = groupBy(entries, (e) => e.status)
     return Object.entries(grouped).map(([name, items]) => ({
@@ -119,28 +119,29 @@ export function DashboardCharts({ entries, teamMembers, leaveRecords }: Dashboar
       }))
   }, [entries])
 
-  const memberTaskData = useMemo(() => {
-    const grouped = groupBy(
-      entries.filter((e) => e.assignedTo),
-      (e) => e.assignedTo
-    )
-    return Object.entries(grouped)
-      .map(([name, items]) => ({ name, count: items.length }))
-      .sort((a, b) => b.count - a.count)
-  }, [entries])
+  const hoursByMember = useMemo(() => {
+    const memberMap = new Map(teamMembers.map((m) => [m.id, m.name]))
+    const totals: Record<string, number> = {}
+    for (const log of timeLogs) {
+      const name = memberMap.get(log.memberId) || 'Unknown'
+      totals[name] = (totals[name] || 0) + log.hours
+    }
+    return Object.entries(totals)
+      .map(([name, hours]) => ({ name, hours }))
+      .sort((a, b) => b.hours - a.hours)
+  }, [timeLogs, teamMembers])
 
-  const deptData = useMemo(() => {
-    const memberDeptMap = new Map(teamMembers.map((m) => [m.name, m.department]))
-    const grouped = groupBy(
-      entries.filter((e) => e.assignedTo && memberDeptMap.has(e.assignedTo)),
-      (e) => memberDeptMap.get(e.assignedTo)!
-    )
-    return Object.entries(grouped).map(([name, items]) => ({
-      name,
-      value: items.length,
-      fill: DEPT_COLORS[name] || COLORS.white,
-    }))
-  }, [entries, teamMembers])
+  const hoursByTask = useMemo(() => {
+    const entryMap = new Map(entries.map((e) => [e.id, e.name]))
+    const totals: Record<string, number> = {}
+    for (const log of timeLogs) {
+      const name = entryMap.get(log.entryId) || 'Unknown'
+      totals[name] = (totals[name] || 0) + log.hours
+    }
+    return Object.entries(totals)
+      .map(([name, hours]) => ({ name, hours, fill: COLORS.blue }))
+      .sort((a, b) => b.hours - a.hours)
+  }, [timeLogs, entries])
 
   const leaveData = useMemo(() => {
     const grouped = groupBy(leaveRecords, (r) => r.type)
@@ -260,40 +261,42 @@ export function DashboardCharts({ entries, teamMembers, leaveRecords }: Dashboar
         </div>
       </ChartCard>
 
-      {/* 4. Tasks Per Member (Horizontal Bar) */}
-      <ChartCard title="Tasks Per Team Member" className="animate-fade-up stagger-7">
-        <ResponsiveContainer width="100%" height={Math.max(220, memberTaskData.length * 36)}>
-          <BarChart data={memberTaskData} layout="vertical" barSize={18}>
-            <CartesianGrid {...gridStyle} horizontal={false} />
-            <XAxis type="number" tick={axisStyle} axisLine={false} tickLine={false} allowDecimals={false} />
-            <YAxis type="category" dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} width={100} />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-            <Bar dataKey="count" fill={COLORS.emerald} radius={[0, 6, 6, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+      {/* 4. Hours by Member (Horizontal Bar) */}
+      <ChartCard title="Hours by Member" className="animate-fade-up stagger-7">
+        {hoursByMember.length === 0 ? (
+          <div className="flex h-[220px] items-center justify-center">
+            <p className="text-xs text-white/30">No time logs yet</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={Math.max(220, hoursByMember.length * 36)}>
+            <BarChart data={hoursByMember} layout="vertical" barSize={18}>
+              <CartesianGrid {...gridStyle} horizontal={false} />
+              <XAxis type="number" tick={axisStyle} axisLine={false} tickLine={false} unit="h" />
+              <YAxis type="category" dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} width={100} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Bar dataKey="hours" fill={COLORS.emerald} radius={[0, 6, 6, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </ChartCard>
 
-      {/* 5. Department Workload (Pie) */}
-      <ChartCard title="Department Workload" className="animate-fade-up stagger-8">
-        <ResponsiveContainer width="100%" height={220}>
-          <PieChart>
-            <Pie
-              data={deptData}
-              cx="50%"
-              cy="50%"
-              outerRadius={85}
-              paddingAngle={2}
-              dataKey="value"
-              stroke="none"
-            >
-              {deptData.map((d) => (
-                <Cell key={d.name} fill={d.fill} />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} />
-          </PieChart>
-        </ResponsiveContainer>
-        {renderLegend(deptData)}
+      {/* 5. Hours by Task (Horizontal Bar) */}
+      <ChartCard title="Hours by Task" className="animate-fade-up stagger-8">
+        {hoursByTask.length === 0 ? (
+          <div className="flex h-[220px] items-center justify-center">
+            <p className="text-xs text-white/30">No time logs yet</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={Math.max(220, hoursByTask.length * 36)}>
+            <BarChart data={hoursByTask} layout="vertical" barSize={18}>
+              <CartesianGrid {...gridStyle} horizontal={false} />
+              <XAxis type="number" tick={axisStyle} axisLine={false} tickLine={false} unit="h" />
+              <YAxis type="category" dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} width={130} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Bar dataKey="hours" fill={COLORS.purple} radius={[0, 6, 6, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </ChartCard>
 
       {/* 6. Leave Type Distribution (Donut) */}

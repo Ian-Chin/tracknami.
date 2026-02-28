@@ -1,6 +1,7 @@
 export interface Entry {
   id: string
   name: string
+  description: string
   status: string
   priority: string
   date: string | null
@@ -32,6 +33,33 @@ export interface LeaveRecord {
   type: string
   startDate: string | null
   endDate: string | null
+}
+
+export interface TimeLog {
+  id: string
+  name: string
+  entryId: string
+  memberId: string
+  hours: number
+  date: string | null
+  notes: string
+}
+
+export interface CreateTimeLogInput {
+  entryId: string
+  memberId: string
+  hours: number
+  date: string
+  notes?: string
+  name?: string
+}
+
+export interface CreateTeamMemberInput {
+  name: string
+  role?: string
+  email?: string
+  department?: string
+  status?: string
 }
 
 const BASE = '/api'
@@ -72,6 +100,12 @@ export const NotionService = {
 
   getTeam: () => request<TeamMember[]>('/team'),
 
+  createTeamMember: (data: CreateTeamMemberInput) =>
+    request<TeamMember>('/team', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   updateTeamStatus: (id: string, status: string) =>
     request<TeamMember>(`/team/${id}`, {
       method: 'PATCH',
@@ -79,4 +113,15 @@ export const NotionService = {
     }),
 
   getLeaveRecords: () => request<LeaveRecord[]>('/leave'),
+
+  getAllTimeLogs: () => request<TimeLog[]>('/time-logs'),
+
+  getTimeLogs: (entryId: string) =>
+    request<TimeLog[]>(`/time-logs?entryId=${encodeURIComponent(entryId)}`),
+
+  createTimeLog: (data: CreateTimeLogInput) =>
+    request<TimeLog>('/time-logs', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 }

@@ -1,20 +1,19 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import type { CreateEntryInput, TeamMember } from '@/services/NotionService'
+import type { CreateTeamMemberInput } from '@/services/NotionService'
 
-interface AddEntryModalProps {
+interface AddTeamMemberModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: CreateEntryInput) => Promise<unknown>
-  teamMembers?: TeamMember[]
+  onSubmit: (data: CreateTeamMemberInput) => Promise<unknown>
 }
 
-export function AddEntryModal({ open, onClose, onSubmit, teamMembers = [] }: AddEntryModalProps) {
+export function AddTeamMemberModal({ open, onClose, onSubmit }: AddTeamMemberModalProps) {
   const [name, setName] = useState('')
-  const [status, setStatus] = useState('Not Started')
-  const [priority, setPriority] = useState('Medium')
-  const [date, setDate] = useState('')
-  const [assignedTo, setAssignedTo] = useState('')
+  const [role, setRole] = useState('')
+  const [email, setEmail] = useState('')
+  const [department, setDepartment] = useState('')
+  const [status, setStatus] = useState('Available')
   const [submitting, setSubmitting] = useState(false)
 
   if (!open) return null
@@ -27,16 +26,16 @@ export function AddEntryModal({ open, onClose, onSubmit, teamMembers = [] }: Add
     try {
       await onSubmit({
         name: name.trim(),
+        role: role.trim() || undefined,
+        email: email.trim() || undefined,
+        department: department || undefined,
         status,
-        priority,
-        date: date || undefined,
-        assignedTo: assignedTo || undefined,
       })
       setName('')
-      setStatus('Not Started')
-      setPriority('Medium')
-      setDate('')
-      setAssignedTo('')
+      setRole('')
+      setEmail('')
+      setDepartment('')
+      setStatus('Available')
       onClose()
     } finally {
       setSubmitting(false)
@@ -45,19 +44,16 @@ export function AddEntryModal({ open, onClose, onSubmit, teamMembers = [] }: Add
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-md"
         onClick={onClose}
       />
 
-      {/* Modal */}
       <div className="relative z-10 w-full max-w-md rounded-2xl border border-white/[0.12] bg-[#111111] p-6 shadow-[0_0_80px_rgba(255,255,255,0.04)] animate-fade-up">
-        {/* Top glow line */}
         <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-linear-to-r from-transparent via-white/[0.25] to-transparent" />
 
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-white">New Entry</h2>
+          <h2 className="text-base font-semibold text-white">Add Team Member</h2>
           <button
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-xl text-white/40 transition-all hover:bg-white/[0.08] hover:text-white/70"
@@ -67,7 +63,6 @@ export function AddEntryModal({ open, onClose, onSubmit, teamMembers = [] }: Add
         </div>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          {/* Name */}
           <div>
             <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-white/40">
               Name
@@ -76,14 +71,56 @@ export function AddEntryModal({ open, onClose, onSubmit, teamMembers = [] }: Add
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter entry name..."
+              placeholder="Full name..."
               autoFocus
               className="h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 text-sm text-white/90 outline-none transition-all placeholder:text-white/20 focus:border-white/[0.25] focus:shadow-[0_0_20px_rgba(255,255,255,0.04)]"
             />
           </div>
 
-          {/* Status & Priority */}
+          <div>
+            <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-white/40">
+              Role
+            </label>
+            <input
+              type="text"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              placeholder="e.g. Frontend Developer"
+              className="h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 text-sm text-white/90 outline-none transition-all placeholder:text-white/20 focus:border-white/[0.25]"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-white/40">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@company.com"
+              className="h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 text-sm text-white/90 outline-none transition-all placeholder:text-white/20 focus:border-white/[0.25]"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-white/40">
+                Department
+              </label>
+              <select
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                className="h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 text-sm text-white/70 outline-none transition-all focus:border-white/[0.25]"
+              >
+                <option value="">Select...</option>
+                <option>Engineering</option>
+                <option>Design</option>
+                <option>Marketing</option>
+                <option>Operations</option>
+                <option>HR</option>
+              </select>
+            </div>
             <div>
               <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-white/40">
                 Status
@@ -93,63 +130,14 @@ export function AddEntryModal({ open, onClose, onSubmit, teamMembers = [] }: Add
                 onChange={(e) => setStatus(e.target.value)}
                 className="h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 text-sm text-white/70 outline-none transition-all focus:border-white/[0.25]"
               >
-                <option>Not Started</option>
-                <option>In Progress</option>
-                <option>Done</option>
-              </select>
-            </div>
-            <div>
-              <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-white/40">
-                Priority
-              </label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                className="h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 text-sm text-white/70 outline-none transition-all focus:border-white/[0.25]"
-              >
-                <option>Low</option>
-                <option>Medium</option>
-                <option>High</option>
-                <option>Urgent</option>
+                <option>Available</option>
+                <option>On Leave</option>
+                <option>MC</option>
+                <option>Remote</option>
               </select>
             </div>
           </div>
 
-          {/* Date */}
-          <div>
-            <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-white/40">
-              Date
-            </label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 text-sm text-white/70 outline-none transition-all focus:border-white/[0.25]"
-            />
-          </div>
-
-          {/* Assigned To */}
-          {teamMembers.length > 0 && (
-            <div>
-              <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-white/40">
-                Assigned To
-              </label>
-              <select
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                className="h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 text-sm text-white/70 outline-none transition-all focus:border-white/[0.25]"
-              >
-                <option value="">Unassigned</option>
-                {teamMembers.map((m) => (
-                  <option key={m.id} value={m.name}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-3">
             <button
               type="button"
@@ -163,7 +151,7 @@ export function AddEntryModal({ open, onClose, onSubmit, teamMembers = [] }: Add
               disabled={!name.trim() || submitting}
               className="h-10 rounded-xl bg-white px-5 text-sm font-semibold text-black transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-[0.97] disabled:opacity-30"
             >
-              {submitting ? 'Creating...' : 'Create Entry'}
+              {submitting ? 'Adding...' : 'Add Member'}
             </button>
           </div>
         </form>

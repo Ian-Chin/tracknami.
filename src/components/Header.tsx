@@ -14,7 +14,7 @@ export function Header({ onAddEntry, searchQuery, onSearchChange, onNavigateLogi
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-white/[0.08] bg-[#0a0a0a]/80 px-6 backdrop-blur-xl">
       {/* Top glow accent */}
-      <div className="absolute top-0 left-0 h-[1px] w-full bg-gradient-to-r from-transparent via-white/[0.12] to-transparent" />
+      <div className="absolute top-0 left-0 h-[1px] w-full bg-linear-to-r from-transparent via-white/[0.12] to-transparent" />
 
       <div className="flex items-center gap-3">
         <h1 className="text-base font-semibold tracking-tight text-white">

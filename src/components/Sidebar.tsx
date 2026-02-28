@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   CalendarDays,
   ListTodo,
+  Clock,
   Settings,
   Users,
   Zap,
@@ -10,13 +11,14 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Page = 'dashboard' | 'team' | 'calendar' | 'task' | 'login'
+type Page = 'dashboard' | 'team' | 'calendar' | 'task' | 'timelogs' | 'login'
 
 const navItems: { icon: typeof LayoutDashboard; label: string; page?: Page }[] = [
   { icon: LayoutDashboard, label: 'Dashboard', page: 'dashboard' },
   { icon: CalendarDays, label: 'Calendar', page: 'calendar' },
   { icon: Users, label: 'Team', page: 'team' },
   { icon: ListTodo, label: 'Task', page: 'task' },
+  { icon: Clock, label: 'Time Logs', page: 'timelogs' },
   { icon: Settings, label: 'Settings' },
 ]
 
@@ -36,7 +38,7 @@ export function Sidebar({ collapsed, onToggle, activePage, onNavigate }: Sidebar
       )}
     >
       {/* Subtle top glow */}
-      <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-40 bg-linear-to-b from-white/[0.03] to-transparent pointer-events-none" />
 
       {/* Logo */}
       <div className="relative flex h-16 items-center justify-between border-b border-white/[0.08] px-4">

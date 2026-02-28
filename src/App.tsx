@@ -8,12 +8,16 @@ import { AddEntryModal } from '@/components/AddEntryModal'
 import { TeamTable } from '@/components/TeamTable'
 import { CalendarView } from '@/components/CalendarView'
 import { LoginPage } from '@/components/LoginPage'
+import { TaskDetailModal } from '@/components/TaskDetailModal'
+import { TimeLogsView } from '@/components/TimeLogsView'
+import type { Entry } from '@/services/NotionService'
 import { useEntries } from '@/hooks/useEntries'
 import { useTeam } from '@/hooks/useTeam'
 import { useLeave } from '@/hooks/useLeave'
+import { useTimeLogs } from '@/hooks/useTimeLogs'
 import { RefreshCw, AlertCircle } from 'lucide-react'
 
-type Page = 'dashboard' | 'team' | 'calendar' | 'task' | 'login'
+type Page = 'dashboard' | 'team' | 'calendar' | 'task' | 'timelogs' | 'login'
 type UserRole = 'admin' | 'employee' | null
 
 function App() {
@@ -21,13 +25,15 @@ function App() {
   const [modalOpen, setModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [activePage, setActivePage] = useState<Page>('login')
-  const [_userRole, setUserRole] = useState<UserRole>(null)
+  const [, setUserRole] = useState<UserRole>(null)
   const [taskFilterMember, setTaskFilterMember] = useState<string | null>(null)
+  const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null)
 
   const { entries, loading, error, addEntry, updateEntry, deleteEntry, refresh } =
     useEntries()
   const { members: teamMembers } = useTeam()
   const { records: leaveRecords } = useLeave()
+  const { timeLogs } = useTimeLogs()
 
   const taskEntries = useMemo(() => {
     if (!taskFilterMember) return entries
@@ -88,6 +94,7 @@ function App() {
                 entries={entries}
                 teamMembers={teamMembers}
                 leaveRecords={leaveRecords}
+                timeLogs={timeLogs}
               />
             </>
           )}
@@ -130,11 +137,15 @@ function App() {
                 onDelete={deleteEntry}
                 onStatusChange={(id, status) => updateEntry(id, { status })}
                 onAssignChange={(id, assignedTo) => updateEntry(id, { assignedTo })}
+                onRowClick={setSelectedEntry}
                 teamMembers={teamMembers}
               />
             </>
           )}
 
+          {activePage === 'timelogs' && (
+            <TimeLogsView entries={entries} teamMembers={teamMembers} />
+          )}
           {activePage === 'calendar' && <CalendarView />}
           {activePage === 'team' && (
             <TeamTable
@@ -153,6 +164,14 @@ function App() {
         onClose={() => setModalOpen(false)}
         onSubmit={addEntry}
         teamMembers={teamMembers}
+      />
+
+      <TaskDetailModal
+        open={selectedEntry !== null}
+        onClose={() => setSelectedEntry(null)}
+        entry={selectedEntry}
+        teamMembers={teamMembers}
+        timeLogs={timeLogs}
       />
     </div>
   )

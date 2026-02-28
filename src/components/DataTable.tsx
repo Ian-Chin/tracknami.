@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Trash2, Calendar, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Entry } from '@/services/NotionService'
@@ -12,6 +12,7 @@ interface DataTableProps {
   onDelete: (id: string) => void
   onStatusChange: (id: string, status: string) => void
   onAssignChange?: (id: string, assignedTo: string) => void
+  onRowClick?: (entry: Entry) => void
   teamMembers?: TeamMember[]
 }
 
@@ -40,14 +41,15 @@ const priorityStyles: Record<string, { bg: string; text: string }> = {
   Urgent: { bg: 'bg-red-500/15', text: 'text-red-400' },
 }
 
-export function DataTable({ entries, loading, onDelete, onStatusChange, onAssignChange, teamMembers = [] }: DataTableProps) {
+export function DataTable({ entries, loading, onDelete, onStatusChange, onAssignChange, onRowClick, teamMembers = [] }: DataTableProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const totalPages = Math.ceil(entries.length / PAGE_SIZE)
-  const paginatedEntries = entries.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const safePage = Math.min(currentPage, Math.max(1, totalPages))
+  const paginatedEntries = entries.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [entries])
+  if (safePage !== currentPage) {
+    setCurrentPage(safePage)
+  }
 
   if (loading) {
     return (
@@ -108,10 +110,12 @@ export function DataTable({ entries, loading, onDelete, onStatusChange, onAssign
                 return (
                   <tr
                     key={entry.id}
+                    onClick={() => onRowClick?.(entry)}
                     className={cn(
                       'group border-b border-white/[0.05] transition-all duration-200 last:border-0 hover:bg-white/[0.03] animate-fade-up',
                       `stagger-${Math.min(i + 1, 8)}`,
-                      entry.id.startsWith('temp-') && 'animate-pulse opacity-40'
+                      entry.id.startsWith('temp-') && 'animate-pulse opacity-40',
+                      onRowClick && 'cursor-pointer'
                     )}
                   >
                     <td className="px-5 py-3.5">
@@ -119,7 +123,8 @@ export function DataTable({ entries, loading, onDelete, onStatusChange, onAssign
                     </td>
                     <td className="px-5 py-3.5">
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation()
                           const statuses = ['Not Started', 'In Progress', 'Done']
                           const idx = statuses.indexOf(entry.status)
                           const next = statuses[(idx + 1) % statuses.length]
@@ -148,6 +153,7 @@ export function DataTable({ entries, loading, onDelete, onStatusChange, onAssign
                       {teamMembers.length > 0 && onAssignChange ? (
                         <select
                           value={entry.assignedTo || ''}
+                          onClick={(e) => e.stopPropagation()}
                           onChange={(e) => onAssignChange(entry.id, e.target.value)}
                           className="cursor-pointer rounded-lg border-0 bg-white/[0.06] px-2.5 py-1 text-[11px] font-medium text-white/50 outline-none transition-all hover:bg-white/[0.1]"
                         >
@@ -178,7 +184,7 @@ export function DataTable({ entries, loading, onDelete, onStatusChange, onAssign
                     <td className="px-5 py-3.5">
                       <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                         <button
-                          onClick={() => onDelete(entry.id)}
+                          onClick={(e) => { e.stopPropagation(); onDelete(entry.id) }}
                           className="flex h-7 w-7 items-center justify-center rounded-lg text-white/30 transition-all hover:bg-red-500/15 hover:text-red-400 hover:shadow-[0_0_12px_rgba(239,68,68,0.15)]"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

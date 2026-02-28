@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
-import { RefreshCw, Users, Mail, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState } from 'react'
+import { RefreshCw, Users, Mail, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTeam } from '@/hooks/useTeam'
+import { AddTeamMemberModal } from '@/components/AddTeamMemberModal'
 
 const statusStyles: Record<string, { bg: string; text: string; dot: string; glow: string }> = {
   Available: {
@@ -50,14 +51,16 @@ interface TeamTableProps {
 const PAGE_SIZE = 10
 
 export function TeamTable({ entries = [], onNavigateToMemberTasks }: TeamTableProps) {
-  const { members, loading, error, updateStatus, refresh } = useTeam()
+  const { members, loading, error, addMember, updateStatus, refresh } = useTeam()
   const [currentPage, setCurrentPage] = useState(1)
+  const [addModalOpen, setAddModalOpen] = useState(false)
   const totalPages = Math.ceil(members.length / PAGE_SIZE)
-  const paginatedMembers = members.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const safePage = Math.min(currentPage, Math.max(1, totalPages))
+  const paginatedMembers = members.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [members])
+  if (safePage !== currentPage) {
+    setCurrentPage(safePage)
+  }
 
   const statusCounts = allStatuses.map((s) => ({
     label: s,
@@ -108,14 +111,23 @@ export function TeamTable({ entries = [], onNavigateToMemberTasks }: TeamTablePr
             Manage team availability and status
           </p>
         </div>
-        <button
-          onClick={refresh}
-          disabled={loading}
-          className="flex h-9 items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3.5 text-xs font-medium text-white/40 transition-all hover:border-white/[0.15] hover:text-white/70 hover:shadow-[0_0_15px_rgba(255,255,255,0.04)] disabled:opacity-30"
-        >
-          <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAddModalOpen(true)}
+            className="flex h-9 items-center gap-2 rounded-xl bg-white px-3.5 text-xs font-semibold text-black transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-[0.97]"
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            Add Member
+          </button>
+          <button
+            onClick={refresh}
+            disabled={loading}
+            className="flex h-9 items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3.5 text-xs font-medium text-white/40 transition-all hover:border-white/[0.15] hover:text-white/70 hover:shadow-[0_0_15px_rgba(255,255,255,0.04)] disabled:opacity-30"
+          >
+            <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -263,6 +275,12 @@ export function TeamTable({ entries = [], onNavigateToMemberTasks }: TeamTablePr
           </div>
         </div>
       )}
+
+      <AddTeamMemberModal
+        open={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        onSubmit={addMember}
+      />
     </div>
   )
 }

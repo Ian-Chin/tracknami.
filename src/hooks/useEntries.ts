@@ -29,6 +29,7 @@ export function useEntries() {
     const optimistic: Entry = {
       id: tempId,
       name: input.name,
+      description: '',
       status: input.status || 'Not Started',
       priority: input.priority || 'Medium',
       date: input.date || null,

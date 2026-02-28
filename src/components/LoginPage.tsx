@@ -49,18 +49,18 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       <DottedSurface />
 
       {/* Gradient fades over the dots */}
-      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none z-[1]" />
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#0a0a0a] to-transparent pointer-events-none z-[1]" />
+      <div className="absolute bottom-0 left-0 right-0 h-48 bg-linear-to-t from-background to-transparent pointer-events-none z-1" />
+      <div className="absolute top-0 left-0 right-0 h-32 bg-linear-to-b from-background to-transparent pointer-events-none z-1" />
 
       {/* Radial glow overlay */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/3 left-1/2 w-[800px] h-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full z-[1]"
+        className="pointer-events-none absolute top-1/3 left-1/2 w-200 h-200 -translate-x-1/2 -translate-y-1/2 rounded-full z-1"
         style={{ background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.04), transparent 60%)', filter: 'blur(40px)' }}
       />
 
       {/* Login content — z-10 layer, centered */}
-      <div className="relative z-[10] min-h-screen flex items-center justify-center">
+      <div className="relative z-10 min-h-screen flex items-center justify-center">
         <div className="w-full max-w-sm animate-fade-up">
           {/* Logo */}
           <div className="flex flex-col items-center mb-10">
@@ -74,7 +74,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           {/* Form card */}
           <div className="relative rounded-2xl border border-white/[0.12] bg-[#0e0e0e]/90 p-8 backdrop-blur-xl shadow-[0_0_80px_rgba(255,255,255,0.03)]">
             {/* Top glow */}
-            <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-white/[0.25] to-transparent rounded-full" />
+            <div className="absolute top-0 left-[15%] right-[15%] h-[1px] bg-linear-to-r from-transparent via-white/[0.25] to-transparent rounded-full" />
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Role selector */}
