@@ -10,6 +10,7 @@ import { CalendarView } from '@/components/CalendarView'
 import { LoginPage } from '@/components/LoginPage'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
 import { TimeLogsView } from '@/components/TimeLogsView'
+import { SalesDashboard } from '@/components/SalesDashboard'
 import type { Entry } from '@/services/NotionService'
 import { useEntries } from '@/hooks/useEntries'
 import { useTeam } from '@/hooks/useTeam'
@@ -17,7 +18,7 @@ import { useLeave } from '@/hooks/useLeave'
 import { useTimeLogs } from '@/hooks/useTimeLogs'
 import { RefreshCw, AlertCircle } from 'lucide-react'
 
-type Page = 'dashboard' | 'team' | 'calendar' | 'task' | 'timelogs' | 'login'
+type Page = 'dashboard' | 'team' | 'calendar' | 'task' | 'timelogs' | 'sales' | 'login'
 type UserRole = 'admin' | 'employee' | null
 
 function App() {
@@ -70,6 +71,12 @@ function App() {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onNavigateLogin={() => setActivePage('login')}
+          entries={entries}
+          onNavigateToTask={(entry) => {
+            setSelectedEntry(entry)
+            setActivePage('task')
+          }}
+          activePage={activePage}
         />
 
         <div className="p-6">
@@ -142,6 +149,8 @@ function App() {
               />
             </>
           )}
+
+          {activePage === 'sales' && <SalesDashboard />}
 
           {activePage === 'timelogs' && (
             <TimeLogsView entries={entries} teamMembers={teamMembers} />

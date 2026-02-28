@@ -3,6 +3,7 @@ import {
   CalendarDays,
   ListTodo,
   Clock,
+  DollarSign,
   Settings,
   Users,
   Zap,
@@ -11,9 +12,10 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Page = 'dashboard' | 'team' | 'calendar' | 'task' | 'timelogs' | 'login'
+type Page = 'dashboard' | 'team' | 'calendar' | 'task' | 'timelogs' | 'sales' | 'login'
 
 const navItems: { icon: typeof LayoutDashboard; label: string; page?: Page }[] = [
+  { icon: DollarSign, label: 'Sales', page: 'sales' },
   { icon: LayoutDashboard, label: 'Dashboard', page: 'dashboard' },
   { icon: CalendarDays, label: 'Calendar', page: 'calendar' },
   { icon: Users, label: 'Team', page: 'team' },

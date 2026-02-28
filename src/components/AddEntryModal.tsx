@@ -15,6 +15,7 @@ export function AddEntryModal({ open, onClose, onSubmit, teamMembers = [] }: Add
   const [priority, setPriority] = useState('Medium')
   const [date, setDate] = useState('')
   const [assignedTo, setAssignedTo] = useState('')
+  const [dueDate, setDueDate] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   if (!open) return null
@@ -31,12 +32,14 @@ export function AddEntryModal({ open, onClose, onSubmit, teamMembers = [] }: Add
         priority,
         date: date || undefined,
         assignedTo: assignedTo || undefined,
+        dueDate: dueDate || undefined,
       })
       setName('')
       setStatus('Not Started')
       setPriority('Medium')
       setDate('')
       setAssignedTo('')
+      setDueDate('')
       onClose()
     } finally {
       setSubmitting(false)
@@ -124,6 +127,19 @@ export function AddEntryModal({ open, onClose, onSubmit, teamMembers = [] }: Add
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              className="h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 text-sm text-white/70 outline-none transition-all focus:border-white/[0.25]"
+            />
+          </div>
+
+          {/* Due Date */}
+          <div>
+            <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.1em] text-white/40">
+              Due Date
+            </label>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
               className="h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 text-sm text-white/70 outline-none transition-all focus:border-white/[0.25]"
             />
           </div>

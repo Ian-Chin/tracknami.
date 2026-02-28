@@ -80,6 +80,22 @@ export function TaskDetailModal({ open, onClose, entry, teamMembers, timeLogs }:
               {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
           )}
+          {entry.dueDate && (() => {
+            const due = new Date(entry.dueDate + 'T00:00:00')
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            const isOverdue = due < today && entry.status !== 'Done'
+            const isToday = due.getTime() === today.getTime() && entry.status !== 'Done'
+            return (
+              <span className={cn(
+                'rounded-lg px-2.5 py-1 text-[11px] font-mono font-medium',
+                isOverdue ? 'bg-red-500/15 text-red-400' : isToday ? 'bg-yellow-500/15 text-yellow-400' : 'bg-white/[0.06] text-white/40'
+              )}>
+                Due: {due.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                {isOverdue && ' (overdue)'}
+              </span>
+            )
+          })()}
         </div>
 
         {/* Description */}

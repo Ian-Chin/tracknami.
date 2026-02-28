@@ -34,6 +34,7 @@ export function useEntries() {
       priority: input.priority || 'Medium',
       date: input.date || null,
       assignedTo: input.assignedTo || '',
+      dueDate: input.dueDate || null,
       createdAt: new Date().toISOString(),
     }
     setEntries((prev) => [optimistic, ...prev])

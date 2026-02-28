@@ -1,15 +1,28 @@
 import { Search, Bell, Plus, Sparkles, User, LogOut } from 'lucide-react'
 import { useState } from 'react'
+import { NotificationDropdown, groupNotifications } from '@/components/NotificationDropdown'
+import { AIInsightsDropdown } from '@/components/AIInsightsPanel'
+import type { Entry } from '@/services/NotionService'
 
 interface HeaderProps {
   onAddEntry: () => void
   searchQuery: string
   onSearchChange: (q: string) => void
   onNavigateLogin?: () => void
+  entries?: Entry[]
+  onNavigateToTask?: (entry: Entry) => void
+  activePage?: string
 }
 
-export function Header({ onAddEntry, searchQuery, onSearchChange, onNavigateLogin }: HeaderProps) {
+export function Header({ onAddEntry, searchQuery, onSearchChange, onNavigateLogin, entries = [], onNavigateToTask, activePage = '' }: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [showAI, setShowAI] = useState(false)
+
+  const { overdue, dueToday } = groupNotifications(entries)
+  const badgeCount = overdue.length + dueToday.length
+
+  const showAIButton = activePage === 'dashboard' || activePage === 'sales'
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-white/[0.08] bg-[#0a0a0a]/80 px-6 backdrop-blur-xl">
@@ -51,11 +64,51 @@ export function Header({ onAddEntry, searchQuery, onSearchChange, onNavigateLogi
           <Plus className="h-4 w-4" />
         </button>
 
+        {/* AI Insights */}
+        {showAIButton && (
+          <div className="relative">
+            <button
+              onClick={() => { setShowAI(!showAI); setShowNotifications(false) }}
+              className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-400 transition-all hover:border-purple-500/40 hover:bg-purple-500/15 hover:shadow-[0_0_15px_rgba(168,85,247,0.15)]"
+              title="AI Insights"
+            >
+              <Sparkles className="h-4 w-4" />
+            </button>
+            {showAI && (
+              <AIInsightsDropdown
+                entries={entries}
+                activePage={activePage}
+                onClose={() => setShowAI(false)}
+              />
+            )}
+          </div>
+        )}
+
         {/* Notifications */}
-        <button className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.1] bg-white/[0.05] text-white/50 transition-all hover:border-white/[0.2] hover:text-white/80 hover:shadow-[0_0_15px_rgba(255,255,255,0.04)]">
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => { setShowNotifications(!showNotifications); setShowAI(false) }}
+            className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.1] bg-white/[0.05] text-white/50 transition-all hover:border-white/[0.2] hover:text-white/80 hover:shadow-[0_0_15px_rgba(255,255,255,0.04)]"
+          >
+            <Bell className="h-4 w-4" />
+            {badgeCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow-[0_0_8px_rgba(239,68,68,0.6)]">
+                {badgeCount}
+              </span>
+            )}
+          </button>
+          {showNotifications && (
+            <div onMouseLeave={() => setShowNotifications(false)}>
+              <NotificationDropdown
+                entries={entries}
+                onNavigateToTask={(entry) => {
+                  setShowNotifications(false)
+                  onNavigateToTask?.(entry)
+                }}
+              />
+            </div>
+          )}
+        </div>
 
         {/* User Account */}
         <div className="relative">

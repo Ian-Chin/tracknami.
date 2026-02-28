@@ -92,7 +92,7 @@ export function DataTable({ entries, loading, onDelete, onStatusChange, onAssign
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/[0.06]">
-                {['Name', 'Status', 'Priority', 'Assigned To', 'Date', ''].map((h) => (
+                {['Name', 'Status', 'Priority', 'Assigned To', 'Date', 'Due Date', ''].map((h) => (
                   <th
                     key={h}
                     className="px-5 py-3 text-left text-[10px] font-medium uppercase tracking-[0.15em] text-white/30"
@@ -180,6 +180,26 @@ export function DataTable({ entries, loading, onDelete, onStatusChange, onAssign
                             })
                           : '---'}
                       </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {entry.dueDate ? (() => {
+                        const due = new Date(entry.dueDate + 'T00:00:00')
+                        const today = new Date()
+                        today.setHours(0, 0, 0, 0)
+                        const isOverdue = due < today && entry.status !== 'Done'
+                        const isToday = due.getTime() === today.getTime() && entry.status !== 'Done'
+                        return (
+                          <span className={cn(
+                            'text-xs font-mono',
+                            isOverdue ? 'text-red-400 font-semibold' : isToday ? 'text-yellow-400' : 'text-white/35'
+                          )}>
+                            {due.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {isOverdue && <span className="ml-1 text-[10px]">overdue</span>}
+                          </span>
+                        )
+                      })() : (
+                        <span className="text-xs font-mono text-white/35">---</span>
+                      )}
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">

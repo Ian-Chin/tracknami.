@@ -6,6 +6,7 @@ export interface Entry {
   priority: string
   date: string | null
   assignedTo: string
+  dueDate: string | null
   createdAt: string
 }
 
@@ -15,6 +16,7 @@ export interface CreateEntryInput {
   priority?: string
   date?: string
   assignedTo?: string
+  dueDate?: string
 }
 
 export interface TeamMember {
@@ -52,6 +54,31 @@ export interface CreateTimeLogInput {
   date: string
   notes?: string
   name?: string
+}
+
+export interface SalesDeal {
+  id: string
+  name: string
+  client: string
+  amount: number
+  stage: string
+  salesRep: string
+  closeDate: string | null
+}
+
+export interface CreateSalesDealInput {
+  name: string
+  client?: string
+  amount?: number
+  stage?: string
+  salesRep?: string
+  closeDate?: string
+}
+
+export interface AIInsight {
+  type: 'warning' | 'suggestion' | 'summary' | 'opportunity' | 'risk'
+  title: string
+  description: string
 }
 
 export interface CreateTeamMemberInput {
@@ -121,6 +148,45 @@ export const NotionService = {
 
   createTimeLog: (data: CreateTimeLogInput) =>
     request<TimeLog>('/time-logs', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Sales
+  getSales: () => request<SalesDeal[]>('/sales'),
+
+  createSale: (data: CreateSalesDealInput) =>
+    request<SalesDeal>('/sales', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateSale: (id: string, data: Partial<CreateSalesDealInput>) =>
+    request<SalesDeal>(`/sales/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  deleteSale: (id: string) =>
+    request<{ ok: boolean }>(`/sales/${id}`, {
+      method: 'DELETE',
+    }),
+
+  // AI Insights
+  getTaskInsights: (entries: { name: string; status: string; priority: string; dueDate: string | null; assignedTo: string }[]) =>
+    request<AIInsight[]>('/ai/task-insights', {
+      method: 'POST',
+      body: JSON.stringify({ entries }),
+    }),
+
+  getSalesAnalysis: (deals: { name: string; client: string; amount: number; stage: string; salesRep: string; closeDate: string | null }[]) =>
+    request<AIInsight[]>('/ai/sales-analysis', {
+      method: 'POST',
+      body: JSON.stringify({ deals }),
+    }),
+
+  getAISummary: (data: { entries: unknown[]; deals: unknown[] }) =>
+    request<AIInsight[]>('/ai/summary', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
