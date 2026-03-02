@@ -1,57 +1,70 @@
 import { useState, useMemo } from 'react'
-import { Sidebar } from '@/components/Sidebar'
+import { Sidebar, type Page } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
-import { StatsCards } from '@/components/StatsCards'
-import { DataTable } from '@/components/DataTable'
-import { DashboardCharts } from '@/components/DashboardCharts'
-import { AddEntryModal } from '@/components/AddEntryModal'
-import { TeamTable } from '@/components/TeamTable'
+import { ProjectsTable } from '@/components/ProjectsTable'
+import { TasksTable } from '@/components/TasksTable'
 import { CalendarView } from '@/components/CalendarView'
+import { PeoplePage } from '@/components/PeoplePage'
+import { AddProjectModal } from '@/components/AddProjectModal'
+import { AddTaskModal } from '@/components/AddTaskModal'
 import { LoginPage } from '@/components/LoginPage'
-import { TaskDetailModal } from '@/components/TaskDetailModal'
-import { TimeLogsView } from '@/components/TimeLogsView'
-import { SalesDashboard } from '@/components/SalesDashboard'
-import type { Entry } from '@/services/NotionService'
-import { useEntries } from '@/hooks/useEntries'
-import { useTeam } from '@/hooks/useTeam'
-import { useLeave } from '@/hooks/useLeave'
-import { useTimeLogs } from '@/hooks/useTimeLogs'
-import { RefreshCw, AlertCircle } from 'lucide-react'
-
-type Page = 'dashboard' | 'team' | 'calendar' | 'task' | 'timelogs' | 'sales' | 'login'
-type UserRole = 'admin' | 'employee' | null
+import { useProjects } from '@/hooks/useProjects'
+import { useTasks } from '@/hooks/useTasks'
+import { RefreshCw, AlertCircle, Plus } from 'lucide-react'
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [modalOpen, setModalOpen] = useState(false)
+  const [projectModalOpen, setProjectModalOpen] = useState(false)
+  const [taskModalOpen, setTaskModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [activePage, setActivePage] = useState<Page>('login')
-  const [, setUserRole] = useState<UserRole>(null)
-  const [taskFilterMember, setTaskFilterMember] = useState<string | null>(null)
-  const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null)
 
-  const { entries, loading, error, addEntry, updateEntry, deleteEntry, refresh } =
-    useEntries()
-  const { members: teamMembers } = useTeam()
-  const { records: leaveRecords } = useLeave()
-  const { timeLogs } = useTimeLogs()
+  const {
+    projects, loading: projLoading, error: projError,
+    addProject, updateProject, deleteProject, refresh: refreshProjects,
+  } = useProjects()
 
-  const taskEntries = useMemo(() => {
-    if (!taskFilterMember) return entries
-    return entries.filter((e) => e.assignedTo === taskFilterMember)
-  }, [entries, taskFilterMember])
+  const {
+    tasks, loading: taskLoading, error: taskError,
+    addTask, updateTask, deleteTask, refresh: refreshTasks,
+  } = useTasks()
 
-  // Login page — full screen, no sidebar/header
+  const filteredProjects = useMemo(() => {
+    if (!searchQuery.trim()) return projects
+    const q = searchQuery.toLowerCase()
+    return projects.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.state.toLowerCase().includes(q) ||
+        p.category.some((c) => c.toLowerCase().includes(q)) ||
+        p.person.some((pe) => pe.name.toLowerCase().includes(q))
+    )
+  }, [projects, searchQuery])
+
+  const filteredTasks = useMemo(() => {
+    if (!searchQuery.trim()) return tasks
+    const q = searchQuery.toLowerCase()
+    return tasks.filter(
+      (t) => t.name.toLowerCase().includes(q)
+    )
+  }, [tasks, searchQuery])
+
   if (activePage === 'login') {
     return (
       <LoginPage
-        onLogin={(role) => {
-          setUserRole(role)
-          setActivePage('dashboard')
-        }}
+        onLogin={() => setActivePage('projects')}
       />
     )
   }
+
+  const error = projError || taskError
+  const loading = activePage === 'projects' ? projLoading : activePage === 'tasks' ? taskLoading : activePage === 'people' ? (projLoading || taskLoading) : false
+  const refresh = activePage === 'projects' ? refreshProjects : activePage === 'tasks' ? refreshTasks : () => { refreshProjects(); refreshTasks() }
+
+  const pageTitles: Record<string, string> = { projects: 'Projects', tasks: 'Tasks', calendar: 'Calendar', people: 'People' }
+  const pageSubtitles: Record<string, string> = { projects: 'Manage and track your projects', tasks: 'Track your tasks across projects', calendar: 'View your tasks on a calendar', people: 'Team members and their tasks' }
+  const pageTitle = pageTitles[activePage] || ''
+  const pageSubtitle = pageSubtitles[activePage] || ''
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] ambient-bg">
@@ -67,120 +80,99 @@ function App() {
         style={{ marginLeft: sidebarCollapsed ? 68 : 240 }}
       >
         <Header
-          onAddEntry={() => setModalOpen(true)}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onNavigateLogin={() => setActivePage('login')}
-          entries={entries}
-          onNavigateToTask={(entry) => {
-            setSelectedEntry(entry)
-            setActivePage('task')
-          }}
-          activePage={activePage}
         />
 
         <div className="p-6">
-          {activePage === 'dashboard' && (
-            <>
-              {error && (
-                <div className="mb-5 flex items-center gap-2 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 animate-fade-up">
-                  <AlertCircle className="h-4 w-4 text-red-400" />
-                  <p className="text-sm text-red-400">{error}</p>
-                  <button
-                    onClick={refresh}
-                    className="ml-auto text-xs font-medium text-red-400 underline hover:no-underline"
-                  >
-                    Retry
-                  </button>
-                </div>
+          {error && (
+            <div className="mb-5 flex items-center gap-2 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 animate-fade-up">
+              <AlertCircle className="h-4 w-4 text-red-400" />
+              <p className="text-sm text-red-400">{error}</p>
+              <button onClick={refresh} className="ml-auto text-xs font-medium text-red-400 underline hover:no-underline">
+                Retry
+              </button>
+            </div>
+          )}
+
+          <div className="mb-4 flex items-center justify-between animate-fade-up">
+            <div>
+              <h2 className="text-sm font-semibold text-white/80">{pageTitle}</h2>
+              <p className="mt-0.5 text-xs text-white/30">{pageSubtitle}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {activePage === 'projects' && (
+                <button
+                  onClick={() => setProjectModalOpen(true)}
+                  className="flex h-9 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-black transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-[0.97]"
+                >
+                  <Plus className="h-4 w-4" />
+                  New Project
+                </button>
               )}
+              {activePage === 'tasks' && (
+                <button
+                  onClick={() => setTaskModalOpen(true)}
+                  className="flex h-9 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-black transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-[0.97]"
+                >
+                  <Plus className="h-4 w-4" />
+                  New Task
+                </button>
+              )}
+              {(activePage === 'projects' || activePage === 'tasks' || activePage === 'people') && (
+                <button
+                  onClick={refresh}
+                  disabled={loading}
+                  className="flex h-9 items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3.5 text-xs font-medium text-white/40 transition-all hover:border-white/[0.15] hover:text-white/70 hover:shadow-[0_0_15px_rgba(255,255,255,0.04)] disabled:opacity-30"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              )}
+            </div>
+          </div>
 
-              <StatsCards entries={entries} />
-
-              <DashboardCharts
-                entries={entries}
-                teamMembers={teamMembers}
-                leaveRecords={leaveRecords}
-                timeLogs={timeLogs}
-              />
-            </>
-          )}
-
-          {activePage === 'task' && (
-            <>
-              <div className="mb-4 flex items-center justify-between animate-fade-up">
-                <div>
-                  <h2 className="text-sm font-semibold text-white/80">
-                    {taskFilterMember ? `Tasks — ${taskFilterMember}` : 'All Tasks'}
-                  </h2>
-                  <p className="mt-0.5 text-xs text-white/30">
-                    {taskFilterMember
-                      ? 'Showing tasks for this team member'
-                      : 'Manage and assign tasks to team members'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {taskFilterMember && (
-                    <button
-                      onClick={() => setTaskFilterMember(null)}
-                      className="flex h-9 items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3.5 text-xs font-medium text-white/40 transition-all hover:border-white/[0.15] hover:text-white/70"
-                    >
-                      Show All
-                    </button>
-                  )}
-                  <button
-                    onClick={refresh}
-                    disabled={loading}
-                    className="flex h-9 items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3.5 text-xs font-medium text-white/40 transition-all hover:border-white/[0.15] hover:text-white/70 hover:shadow-[0_0_15px_rgba(255,255,255,0.04)] disabled:opacity-30"
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </button>
-                </div>
-              </div>
-              <DataTable
-                entries={taskEntries}
-                loading={loading}
-                onDelete={deleteEntry}
-                onStatusChange={(id, status) => updateEntry(id, { status })}
-                onAssignChange={(id, assignedTo) => updateEntry(id, { assignedTo })}
-                onRowClick={setSelectedEntry}
-                teamMembers={teamMembers}
-              />
-            </>
-          )}
-
-          {activePage === 'sales' && <SalesDashboard />}
-
-          {activePage === 'timelogs' && (
-            <TimeLogsView entries={entries} teamMembers={teamMembers} />
-          )}
-          {activePage === 'calendar' && <CalendarView />}
-          {activePage === 'team' && (
-            <TeamTable
-              entries={entries}
-              onNavigateToMemberTasks={(memberName) => {
-                setTaskFilterMember(memberName)
-                setActivePage('task')
-              }}
+          {activePage === 'projects' && (
+            <ProjectsTable
+              projects={filteredProjects}
+              loading={projLoading}
+              onDelete={deleteProject}
+              onStateChange={(id, state) => updateProject(id, { state })}
             />
+          )}
+
+          {activePage === 'tasks' && (
+            <TasksTable
+              tasks={filteredTasks}
+              projects={projects}
+              loading={taskLoading}
+              onDelete={deleteTask}
+              onToggleComplete={(id, completed) => updateTask(id, { completed })}
+            />
+          )}
+
+          {activePage === 'calendar' && (
+            <CalendarView tasks={tasks} />
+          )}
+
+          {activePage === 'people' && (
+            <PeoplePage projects={projects} tasks={tasks} loading={projLoading || taskLoading} />
           )}
         </div>
       </main>
 
-      <AddEntryModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={addEntry}
-        teamMembers={teamMembers}
+      <AddProjectModal
+        open={projectModalOpen}
+        onClose={() => setProjectModalOpen(false)}
+        onSubmit={addProject}
       />
 
-      <TaskDetailModal
-        open={selectedEntry !== null}
-        onClose={() => setSelectedEntry(null)}
-        entry={selectedEntry}
-        teamMembers={teamMembers}
-        timeLogs={timeLogs}
+      <AddTaskModal
+        open={taskModalOpen}
+        onClose={() => setTaskModalOpen(false)}
+        onSubmit={addTask}
+        projects={projects}
       />
     </div>
   )

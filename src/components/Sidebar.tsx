@@ -1,10 +1,7 @@
 import {
-  LayoutDashboard,
+  FolderKanban,
+  ListChecks,
   CalendarDays,
-  ListTodo,
-  Clock,
-  DollarSign,
-  Settings,
   Users,
   Zap,
   ChevronLeft,
@@ -12,16 +9,13 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Page = 'dashboard' | 'team' | 'calendar' | 'task' | 'timelogs' | 'sales' | 'login'
+export type Page = 'projects' | 'tasks' | 'calendar' | 'people' | 'login'
 
-const navItems: { icon: typeof LayoutDashboard; label: string; page?: Page }[] = [
-  { icon: DollarSign, label: 'Sales', page: 'sales' },
-  { icon: LayoutDashboard, label: 'Dashboard', page: 'dashboard' },
+const navItems: { icon: typeof FolderKanban; label: string; page?: Page }[] = [
+  { icon: FolderKanban, label: 'Projects', page: 'projects' },
+  { icon: ListChecks, label: 'Tasks', page: 'tasks' },
   { icon: CalendarDays, label: 'Calendar', page: 'calendar' },
-  { icon: Users, label: 'Team', page: 'team' },
-  { icon: ListTodo, label: 'Task', page: 'task' },
-  { icon: Clock, label: 'Time Logs', page: 'timelogs' },
-  { icon: Settings, label: 'Settings' },
+  { icon: Users, label: 'People', page: 'people' },
 ]
 
 interface SidebarProps {
@@ -39,10 +33,8 @@ export function Sidebar({ collapsed, onToggle, activePage, onNavigate }: Sidebar
         collapsed ? 'w-[68px]' : 'w-[240px]'
       )}
     >
-      {/* Subtle top glow */}
       <div className="absolute top-0 left-0 right-0 h-40 bg-linear-to-b from-white/[0.03] to-transparent pointer-events-none" />
 
-      {/* Logo */}
       <div className="relative flex h-16 items-center justify-between border-b border-white/[0.08] px-4">
         <div className="flex items-center gap-3">
           <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white animate-glow-pulse">
@@ -62,7 +54,6 @@ export function Sidebar({ collapsed, onToggle, activePage, onNavigate }: Sidebar
         </button>
       </div>
 
-      {/* Nav */}
       <nav className="mt-6 flex flex-col gap-1 px-3">
         {!collapsed && (
           <span className="mb-2 px-3 text-[10px] font-medium uppercase tracking-[0.15em] text-white/25">
@@ -78,9 +69,7 @@ export function Sidebar({ collapsed, onToggle, activePage, onNavigate }: Sidebar
               className={cn(
                 'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200 animate-slide-in-left',
                 `stagger-${i + 1}`,
-                isActive
-                  ? 'text-white'
-                  : 'text-white/40 hover:text-white/80',
+                isActive ? 'text-white' : 'text-white/40 hover:text-white/80',
                 !item.page && 'opacity-30 cursor-not-allowed'
               )}
             >
@@ -100,7 +89,6 @@ export function Sidebar({ collapsed, onToggle, activePage, onNavigate }: Sidebar
         })}
       </nav>
 
-      {/* Bottom card */}
       {!collapsed && (
         <div className="absolute bottom-4 left-3 right-3 animate-fade-up stagger-6">
           <div className="rounded-xl border border-white/[0.1] bg-white/[0.04] p-4 backdrop-blur-sm">

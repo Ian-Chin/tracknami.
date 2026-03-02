@@ -5,5 +5,9 @@
       "Bash(node setup-team.js:*)",
       "Bash(curl:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "notion"
+  ],
+  "enableAllProjectMcpServers": true
 }
