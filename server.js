@@ -13,6 +13,9 @@ const PROJECTS_DATABASE_ID = process.env.NOTION_PROJECTS_DATABASE_ID
 const PROJECTS_DATA_SOURCE_ID = process.env.NOTION_PROJECTS_DATA_SOURCE_ID
 const TASKS_DATABASE_ID = process.env.NOTION_TASKS_DATABASE_ID
 const TASKS_DATA_SOURCE_ID = process.env.NOTION_TASKS_DATA_SOURCE_ID
+const TIMELOG_DATABASE_ID = process.env.NOTION_TIMELOG_DATABASE_ID
+const TIMELOG_DATA_SOURCE_ID = process.env.NOTION_TIMELOG_DATA_SOURCE_ID
+const USERS_DATA_SOURCE_ID = process.env.NOTION_USERS_DATA_SOURCE_ID
 
 // Health check
 app.get('/api/health', async (_req, res) => {
@@ -21,6 +24,55 @@ app.get('/api/health', async (_req, res) => {
     res.json({ ok: true, user: me.name })
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message })
+  }
+})
+
+// ── Auth ──
+
+app.post('/api/login', async (req, res) => {
+  try {
+    const { email, password } = req.body
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' })
+    }
+    const response = await notion.dataSources.query({
+      data_source_id: USERS_DATA_SOURCE_ID,
+    })
+    const user = response.results.find(
+      (r) => r.properties.Email?.email === email
+    )
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' })
+    }
+    const storedPassword = user.properties.Password?.rich_text?.[0]?.plain_text || ''
+    if (password !== storedPassword) {
+      return res.status(401).json({ error: 'Invalid email or password' })
+    }
+    res.json({
+      ok: true,
+      user: {
+        id: user.id,
+        name: user.properties.Name?.title?.[0]?.plain_text || '',
+        email: user.properties.Email?.email || '',
+        role: user.properties.Role?.select?.name || 'employee',
+      },
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Workspace Users ──
+
+app.get('/api/workspace-users', async (_req, res) => {
+  try {
+    const response = await notion.users.list({})
+    const people = response.results
+      .filter(u => u.type === 'person')
+      .map(u => ({ id: u.id, name: u.name, avatar_url: u.avatar_url }))
+    res.json(people)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
   }
 })
 
@@ -41,7 +93,7 @@ app.get('/api/projects', async (_req, res) => {
 
 app.post('/api/projects', async (req, res) => {
   try {
-    const { name, state, date, category } = req.body
+    const { name, state, date, category, person } = req.body
     const properties = {
       Name: { title: [{ text: { content: name } }] },
     }
@@ -49,6 +101,9 @@ app.post('/api/projects', async (req, res) => {
     if (date) properties.Date = { date: { start: date } }
     if (category && category.length > 0) {
       properties.Category = { multi_select: category.map(c => ({ name: c })) }
+    }
+    if (person && person.length > 0) {
+      properties.Person = { people: person.map(id => ({ id })) }
     }
     const page = await notion.pages.create({
       parent: { database_id: PROJECTS_DATABASE_ID },
@@ -162,6 +217,72 @@ app.delete('/api/tasks/:id', async (req, res) => {
   }
 })
 
+// ── Time Logs ──
+
+app.get('/api/timelogs', async (_req, res) => {
+  try {
+    const response = await notion.dataSources.query({
+      data_source_id: TIMELOG_DATA_SOURCE_ID,
+      sorts: [{ timestamp: 'created_time', direction: 'descending' }],
+    })
+    const logs = response.results.map(mapTimeLog)
+    res.json(logs)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/timelogs', async (req, res) => {
+  try {
+    const { name, hours, date, notes, taskId, projectId, personId } = req.body
+    const properties = {
+      Name: { title: [{ text: { content: name } }] },
+      Hours: { number: hours },
+    }
+    if (date) properties.Date = { date: { start: date } }
+    if (notes) properties.Notes = { rich_text: [{ text: { content: notes } }] }
+    if (taskId) properties.Task = { relation: [{ id: taskId }] }
+    if (projectId) properties.Project = { relation: [{ id: projectId }] }
+    if (personId) properties.Person = { people: [{ id: personId }] }
+
+    const page = await notion.pages.create({
+      parent: { database_id: TIMELOG_DATABASE_ID },
+      properties,
+    })
+    res.json(mapTimeLog(page))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.patch('/api/timelogs/:id', async (req, res) => {
+  try {
+    const { name, hours, date, notes, taskId, projectId, personId } = req.body
+    const properties = {}
+    if (name !== undefined) properties.Name = { title: [{ text: { content: name } }] }
+    if (hours !== undefined) properties.Hours = { number: hours }
+    if (date !== undefined) properties.Date = { date: date ? { start: date } : null }
+    if (notes !== undefined) properties.Notes = { rich_text: notes ? [{ text: { content: notes } }] : [] }
+    if (taskId !== undefined) properties.Task = { relation: taskId ? [{ id: taskId }] : [] }
+    if (projectId !== undefined) properties.Project = { relation: projectId ? [{ id: projectId }] : [] }
+    if (personId !== undefined) properties.Person = { people: personId ? [{ id: personId }] : [] }
+
+    const page = await notion.pages.update({ page_id: req.params.id, properties })
+    res.json(mapTimeLog(page))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/timelogs/:id', async (req, res) => {
+  try {
+    await notion.pages.update({ page_id: req.params.id, archived: true })
+    res.json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ── Mappers ──
 
 function mapProject(page) {
@@ -193,6 +314,21 @@ function mapTask(page) {
     priority: props.Priority?.select?.name || null,
     estimatedTime: props['Estimated Completion Time']?.rich_text?.[0]?.plain_text || '',
     remind: props.Remind?.formula?.string || '',
+    createdAt: page.created_time,
+  }
+}
+
+function mapTimeLog(page) {
+  const props = page.properties
+  return {
+    id: page.id,
+    name: props.Name?.title?.[0]?.plain_text || '',
+    hours: props.Hours?.number ?? 0,
+    date: props.Date?.date?.start || null,
+    notes: props.Notes?.rich_text?.[0]?.plain_text || '',
+    taskId: props.Task?.relation?.[0]?.id || null,
+    projectId: props.Project?.relation?.[0]?.id || null,
+    person: props.Person?.people?.[0] ? { id: props.Person.people[0].id, name: props.Person.people[0].name, avatar: props.Person.people[0].avatar_url } : null,
     createdAt: page.created_time,
   }
 }

@@ -1,11 +1,12 @@
 import { useMemo } from 'react'
-import { Users, CheckSquare, Square, FolderKanban } from 'lucide-react'
+import { Users, CheckSquare, Square, FolderKanban, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Project, Task } from '@/services/NotionService'
+import type { Project, Task, TimeLog } from '@/services/NotionService'
 
 interface PeoplePageProps {
   projects: Project[]
   tasks: Task[]
+  timeLogs: TimeLog[]
   loading: boolean
 }
 
@@ -17,13 +18,19 @@ interface PersonData {
   totalTasks: number
   completedTasks: number
   pendingTasks: number
+  totalHours: number
   taskList: { id: string; name: string; completed: boolean; projectName: string; priority: string | null }[]
 }
 
-export function PeoplePage({ projects, tasks, loading }: PeoplePageProps) {
+export function PeoplePage({ projects, tasks, timeLogs, loading }: PeoplePageProps) {
   const people = useMemo(() => {
     // Build task lookup by id
     const taskMap = new Map(tasks.map((t) => [t.id, t]))
+
+    // Build a set of taskIds per person (to match time logs)
+    const personTaskIds = new Map<string, Set<string>>()
+    // Build a set of projectIds per person (to match time logs by project)
+    const personProjectIds = new Map<string, Set<string>>()
 
     // Collect people from projects
     const peopleMap = new Map<string, PersonData>()
@@ -40,12 +47,16 @@ export function PeoplePage({ projects, tasks, loading }: PeoplePageProps) {
             totalTasks: 0,
             completedTasks: 0,
             pendingTasks: 0,
+            totalHours: 0,
             taskList: [],
           }
           peopleMap.set(person.id, data)
+          personTaskIds.set(person.id, new Set())
+          personProjectIds.set(person.id, new Set())
         }
 
         data.projectCount++
+        personProjectIds.get(person.id)!.add(project.id)
 
         // Get tasks for this project
         for (const taskId of project.taskIds) {
@@ -54,6 +65,7 @@ export function PeoplePage({ projects, tasks, loading }: PeoplePageProps) {
           data.totalTasks++
           if (task.completed) data.completedTasks++
           else data.pendingTasks++
+          personTaskIds.get(person.id)!.add(taskId)
           data.taskList.push({
             id: task.id,
             name: task.name,
@@ -65,9 +77,29 @@ export function PeoplePage({ projects, tasks, loading }: PeoplePageProps) {
       }
     }
 
+    // Sum hours from time logs for each person
+    for (const log of timeLogs) {
+      // Direct match: time log has a person assigned
+      if (log.person) {
+        const data = peopleMap.get(log.person.id)
+        if (data) {
+          data.totalHours += log.hours
+          continue
+        }
+      }
+      // Fallback: match by task or project association
+      for (const [personId, taskIds] of personTaskIds) {
+        const projectIds = personProjectIds.get(personId)!
+        if ((log.taskId && taskIds.has(log.taskId)) || (log.projectId && projectIds.has(log.projectId))) {
+          const data = peopleMap.get(personId)
+          if (data) data.totalHours += log.hours
+        }
+      }
+    }
+
     // Sort by total tasks descending
     return [...peopleMap.values()].sort((a, b) => b.totalTasks - a.totalTasks)
-  }, [projects, tasks])
+  }, [projects, tasks, timeLogs])
 
   if (loading) {
     return (
@@ -130,7 +162,7 @@ export function PeoplePage({ projects, tasks, loading }: PeoplePageProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <div className="rounded-lg bg-white/[0.04] p-2.5 text-center">
                   <p className="text-lg font-bold text-white/80">{person.totalTasks}</p>
                   <p className="text-[10px] text-white/30">Total</p>
@@ -142,6 +174,13 @@ export function PeoplePage({ projects, tasks, loading }: PeoplePageProps) {
                 <div className="rounded-lg bg-yellow-500/10 p-2.5 text-center">
                   <p className="text-lg font-bold text-yellow-400">{person.pendingTasks}</p>
                   <p className="text-[10px] text-yellow-400/50">Pending</p>
+                </div>
+                <div className="rounded-lg bg-cyan-500/10 p-2.5 text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <Clock className="h-3 w-3 text-cyan-400" />
+                    <p className="text-lg font-bold text-cyan-400">{person.totalHours.toFixed(1)}</p>
+                  </div>
+                  <p className="text-[10px] text-cyan-400/50">Hours</p>
                 </div>
               </div>
 

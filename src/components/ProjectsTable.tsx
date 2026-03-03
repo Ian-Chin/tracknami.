@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Trash2, FolderKanban, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Pencil, Trash2, FolderKanban, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Project } from '@/services/NotionService'
 
@@ -9,6 +9,7 @@ interface ProjectsTableProps {
   projects: Project[]
   loading: boolean
   onDelete: (id: string) => void
+  onEdit: (project: Project) => void
   onStateChange: (id: string, state: string) => void
 }
 
@@ -20,7 +21,7 @@ const stateStyles: Record<string, { bg: string; text: string; dot: string }> = {
 
 const STATES = ['Not Start', 'In Progress', 'Completed']
 
-export function ProjectsTable({ projects, loading, onDelete, onStateChange }: ProjectsTableProps) {
+export function ProjectsTable({ projects, loading, onDelete, onEdit, onStateChange }: ProjectsTableProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const totalPages = Math.ceil(projects.length / PAGE_SIZE)
   const safePage = Math.min(currentPage, Math.max(1, totalPages))
@@ -162,6 +163,12 @@ export function ProjectsTable({ projects, loading, onDelete, onStateChange }: Pr
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        <button
+                          onClick={() => onEdit(project)}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-white/30 transition-all hover:bg-white/[0.1] hover:text-white/70"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           onClick={() => onDelete(project.id)}
                           className="flex h-7 w-7 items-center justify-center rounded-lg text-white/30 transition-all hover:bg-red-500/15 hover:text-red-400"

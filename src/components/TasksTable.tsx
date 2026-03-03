@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Trash2, CheckSquare, Square, ListChecks, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Pencil, Trash2, CheckSquare, Square, ListChecks, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Task, Project } from '@/services/NotionService'
 
@@ -10,6 +10,7 @@ interface TasksTableProps {
   projects: Project[]
   loading: boolean
   onDelete: (id: string) => void
+  onEdit: (task: Task) => void
   onToggleComplete: (id: string, completed: boolean) => void
 }
 
@@ -20,7 +21,7 @@ const priorityStyles: Record<string, { bg: string; text: string; label: string }
   '2': { bg: 'bg-white/[0.06]', text: 'text-white/40', label: 'Low' },
 }
 
-export function TasksTable({ tasks, projects, loading, onDelete, onToggleComplete }: TasksTableProps) {
+export function TasksTable({ tasks, projects, loading, onDelete, onEdit, onToggleComplete }: TasksTableProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const totalPages = Math.ceil(tasks.length / PAGE_SIZE)
   const safePage = Math.min(currentPage, Math.max(1, totalPages))
@@ -149,6 +150,12 @@ export function TasksTable({ tasks, projects, loading, onDelete, onToggleComplet
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        <button
+                          onClick={() => onEdit(task)}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-white/30 transition-all hover:bg-white/[0.1] hover:text-white/70"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           onClick={() => onDelete(task.id)}
                           className="flex h-7 w-7 items-center justify-center rounded-lg text-white/30 transition-all hover:bg-red-500/15 hover:text-red-400"

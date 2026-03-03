@@ -52,7 +52,8 @@ export function useProjects() {
   const updateProject = async (id: string, data: Partial<CreateProjectInput>) => {
     const original = projects.find((p) => p.id === id)
     if (!original) return
-    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)))
+    const { person: _person, ...safeData } = data
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...safeData } : p)))
     try {
       const updated = await NotionService.updateProject(id, data)
       setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)))

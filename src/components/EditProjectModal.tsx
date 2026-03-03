@@ -1,16 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { CreateProjectInput, WorkspaceUser } from '@/services/NotionService'
+import type { Project, WorkspaceUser } from '@/services/NotionService'
 
-interface AddProjectModalProps {
-  open: boolean
+interface EditProjectModalProps {
+  project: Project | null
   onClose: () => void
-  onSubmit: (data: CreateProjectInput) => Promise<unknown>
+  onSubmit: (id: string, data: { name?: string; state?: string; date?: string; category?: string[] }) => Promise<unknown>
   workspaceUsers: WorkspaceUser[]
 }
 
-export function AddProjectModal({ open, onClose, onSubmit, workspaceUsers }: AddProjectModalProps) {
+export function EditProjectModal({ project, onClose, onSubmit, workspaceUsers }: EditProjectModalProps) {
   const [name, setName] = useState('')
   const [state, setState] = useState('Not Start')
   const [date, setDate] = useState('')
@@ -19,7 +19,17 @@ export function AddProjectModal({ open, onClose, onSubmit, workspaceUsers }: Add
   const [personDropdownOpen, setPersonDropdownOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  if (!open) return null
+  useEffect(() => {
+    if (project) {
+      setName(project.name)
+      setState(project.state)
+      setDate(project.date || '')
+      setCategoryInput(project.category.join(', '))
+      setSelectedPersonIds(project.person.map((p) => p.id))
+    }
+  }, [project])
+
+  if (!project) return null
 
   const togglePerson = (id: string) => {
     setSelectedPersonIds((prev) =>
@@ -34,19 +44,13 @@ export function AddProjectModal({ open, onClose, onSubmit, workspaceUsers }: Add
     try {
       const category = categoryInput.trim()
         ? categoryInput.split(',').map((c) => c.trim()).filter(Boolean)
-        : undefined
-      await onSubmit({
+        : []
+      await onSubmit(project.id, {
         name: name.trim(),
         state,
         date: date || undefined,
         category,
-        person: selectedPersonIds.length > 0 ? selectedPersonIds : undefined,
       })
-      setName('')
-      setState('Not Start')
-      setDate('')
-      setCategoryInput('')
-      setSelectedPersonIds([])
       onClose()
     } finally {
       setSubmitting(false)
@@ -61,7 +65,7 @@ export function AddProjectModal({ open, onClose, onSubmit, workspaceUsers }: Add
       <div className="relative z-10 w-full max-w-md rounded-2xl border border-white/[0.12] bg-[#111111] p-6 shadow-[0_0_80px_rgba(255,255,255,0.04)] animate-fade-up">
         <div className="absolute top-0 left-[20%] right-[20%] h-[1px] bg-linear-to-r from-transparent via-white/[0.25] to-transparent" />
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-white">New Project</h2>
+          <h2 className="text-base font-semibold text-white">Edit Project</h2>
           <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-xl text-white/40 transition-all hover:bg-white/[0.08] hover:text-white/70">
             <X className="h-4 w-4" />
           </button>
@@ -185,7 +189,7 @@ export function AddProjectModal({ open, onClose, onSubmit, workspaceUsers }: Add
               Cancel
             </button>
             <button type="submit" disabled={!name.trim() || submitting} className="h-10 rounded-xl bg-white px-5 text-sm font-semibold text-black transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-[0.97] disabled:opacity-30">
-              {submitting ? 'Creating...' : 'Create Project'}
+              {submitting ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </form>

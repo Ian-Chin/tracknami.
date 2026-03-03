@@ -1,23 +1,36 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Sidebar, type Page } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
 import { ProjectsTable } from '@/components/ProjectsTable'
 import { TasksTable } from '@/components/TasksTable'
 import { CalendarView } from '@/components/CalendarView'
 import { PeoplePage } from '@/components/PeoplePage'
+import { TimeLogPage } from '@/components/TimeLogPage'
 import { AddProjectModal } from '@/components/AddProjectModal'
 import { AddTaskModal } from '@/components/AddTaskModal'
+import { AddTimeLogModal } from '@/components/AddTimeLogModal'
+import { EditProjectModal } from '@/components/EditProjectModal'
+import { EditTaskModal } from '@/components/EditTaskModal'
 import { LoginPage } from '@/components/LoginPage'
+import type { Project, Task } from '@/services/NotionService'
 import { useProjects } from '@/hooks/useProjects'
 import { useTasks } from '@/hooks/useTasks'
+import { useTimeLogs } from '@/hooks/useTimeLogs'
+import { NotionService, type WorkspaceUser } from '@/services/NotionService'
 import { RefreshCw, AlertCircle, Plus } from 'lucide-react'
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [projectModalOpen, setProjectModalOpen] = useState(false)
   const [taskModalOpen, setTaskModalOpen] = useState(false)
+  const [timeLogModalOpen, setTimeLogModalOpen] = useState(false)
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [activePage, setActivePage] = useState<Page>('login')
+  const [activePage, setActivePage] = useState<Page>(() =>
+    localStorage.getItem('tracknami_logged_in') ? 'projects' : 'login'
+  )
+  const [workspaceUsers, setWorkspaceUsers] = useState<WorkspaceUser[]>([])
 
   const {
     projects, loading: projLoading, error: projError,
@@ -28,6 +41,17 @@ function App() {
     tasks, loading: taskLoading, error: taskError,
     addTask, updateTask, deleteTask, refresh: refreshTasks,
   } = useTasks()
+
+  const {
+    timeLogs, loading: timeLogLoading, error: timeLogError,
+    addTimeLog, deleteTimeLog, refresh: refreshTimeLogs,
+  } = useTimeLogs()
+
+  useEffect(() => {
+    NotionService.getWorkspaceUsers()
+      .then(setWorkspaceUsers)
+      .catch(() => {})
+  }, [])
 
   const filteredProjects = useMemo(() => {
     if (!searchQuery.trim()) return projects
@@ -49,20 +73,33 @@ function App() {
     )
   }, [tasks, searchQuery])
 
-  if (activePage === 'login') {
-    return (
-      <LoginPage
-        onLogin={() => setActivePage('projects')}
-      />
-    )
+  const handleLogin = () => {
+    localStorage.setItem('tracknami_logged_in', '1')
+    setActivePage('projects')
   }
 
-  const error = projError || taskError
-  const loading = activePage === 'projects' ? projLoading : activePage === 'tasks' ? taskLoading : activePage === 'people' ? (projLoading || taskLoading) : false
-  const refresh = activePage === 'projects' ? refreshProjects : activePage === 'tasks' ? refreshTasks : () => { refreshProjects(); refreshTasks() }
+  const handleLogout = () => {
+    localStorage.removeItem('tracknami_logged_in')
+    setActivePage('login')
+  }
 
-  const pageTitles: Record<string, string> = { projects: 'Projects', tasks: 'Tasks', calendar: 'Calendar', people: 'People' }
-  const pageSubtitles: Record<string, string> = { projects: 'Manage and track your projects', tasks: 'Track your tasks across projects', calendar: 'View your tasks on a calendar', people: 'Team members and their tasks' }
+  if (activePage === 'login') {
+    return <LoginPage onLogin={handleLogin} />
+  }
+
+  const error = projError || taskError || timeLogError
+  const loading = activePage === 'projects' ? projLoading
+    : activePage === 'tasks' ? taskLoading
+    : activePage === 'timelogs' ? timeLogLoading
+    : activePage === 'people' ? (projLoading || taskLoading)
+    : false
+  const refresh = activePage === 'projects' ? refreshProjects
+    : activePage === 'tasks' ? refreshTasks
+    : activePage === 'timelogs' ? refreshTimeLogs
+    : () => { refreshProjects(); refreshTasks(); refreshTimeLogs() }
+
+  const pageTitles: Record<string, string> = { projects: 'Projects', tasks: 'Tasks', calendar: 'Calendar', people: 'People', timelogs: 'Log Time' }
+  const pageSubtitles: Record<string, string> = { projects: 'Manage and track your projects', tasks: 'Track your tasks across projects', calendar: 'View your tasks on a calendar', people: 'Team members and their tasks', timelogs: 'Track time spent on tasks and projects' }
   const pageTitle = pageTitles[activePage] || ''
   const pageSubtitle = pageSubtitles[activePage] || ''
 
@@ -82,7 +119,7 @@ function App() {
         <Header
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onNavigateLogin={() => setActivePage('login')}
+          onNavigateLogin={handleLogout}
         />
 
         <div className="p-6">
@@ -120,7 +157,16 @@ function App() {
                   New Task
                 </button>
               )}
-              {(activePage === 'projects' || activePage === 'tasks' || activePage === 'people') && (
+              {activePage === 'timelogs' && (
+                <button
+                  onClick={() => setTimeLogModalOpen(true)}
+                  className="flex h-9 items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-black transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-[0.97]"
+                >
+                  <Plus className="h-4 w-4" />
+                  Log Time
+                </button>
+              )}
+              {(activePage === 'projects' || activePage === 'tasks' || activePage === 'people' || activePage === 'timelogs') && (
                 <button
                   onClick={refresh}
                   disabled={loading}
@@ -138,6 +184,7 @@ function App() {
               projects={filteredProjects}
               loading={projLoading}
               onDelete={deleteProject}
+              onEdit={setEditingProject}
               onStateChange={(id, state) => updateProject(id, { state })}
             />
           )}
@@ -148,16 +195,27 @@ function App() {
               projects={projects}
               loading={taskLoading}
               onDelete={deleteTask}
+              onEdit={setEditingTask}
               onToggleComplete={(id, completed) => updateTask(id, { completed })}
             />
           )}
 
           {activePage === 'calendar' && (
-            <CalendarView tasks={tasks} />
+            <CalendarView tasks={tasks} projects={projects} />
           )}
 
           {activePage === 'people' && (
-            <PeoplePage projects={projects} tasks={tasks} loading={projLoading || taskLoading} />
+            <PeoplePage projects={projects} tasks={tasks} timeLogs={timeLogs} loading={projLoading || taskLoading} />
+          )}
+
+          {activePage === 'timelogs' && (
+            <TimeLogPage
+              timeLogs={timeLogs}
+              tasks={tasks}
+              projects={projects}
+              loading={timeLogLoading}
+              onDelete={deleteTimeLog}
+            />
           )}
         </div>
       </main>
@@ -166,12 +224,36 @@ function App() {
         open={projectModalOpen}
         onClose={() => setProjectModalOpen(false)}
         onSubmit={addProject}
+        workspaceUsers={workspaceUsers}
       />
 
       <AddTaskModal
         open={taskModalOpen}
         onClose={() => setTaskModalOpen(false)}
         onSubmit={addTask}
+        projects={projects}
+      />
+
+      <AddTimeLogModal
+        open={timeLogModalOpen}
+        onClose={() => setTimeLogModalOpen(false)}
+        onSubmit={addTimeLog}
+        tasks={tasks}
+        projects={projects}
+        workspaceUsers={workspaceUsers}
+      />
+
+      <EditProjectModal
+        project={editingProject}
+        onClose={() => setEditingProject(null)}
+        onSubmit={updateProject}
+        workspaceUsers={workspaceUsers}
+      />
+
+      <EditTaskModal
+        task={editingTask}
+        onClose={() => setEditingTask(null)}
+        onSubmit={updateTask}
         projects={projects}
       />
     </div>

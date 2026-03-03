@@ -3,19 +3,20 @@ import {
   ListChecks,
   CalendarDays,
   Users,
-
+  Clock,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export type Page = 'projects' | 'tasks' | 'calendar' | 'people' | 'login'
+export type Page = 'projects' | 'tasks' | 'calendar' | 'people' | 'timelogs' | 'login'
 
 const navItems: { icon: typeof FolderKanban; label: string; page?: Page }[] = [
   { icon: Users, label: 'People', page: 'people' },
   { icon: FolderKanban, label: 'Projects', page: 'projects' },
   { icon: ListChecks, label: 'Tasks', page: 'tasks' },
   { icon: CalendarDays, label: 'Calendar', page: 'calendar' },
+  { icon: Clock, label: 'Log Time', page: 'timelogs' },
 ]
 
 interface SidebarProps {

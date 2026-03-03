@@ -25,11 +25,18 @@ export interface Task {
   createdAt: string
 }
 
+export interface WorkspaceUser {
+  id: string
+  name: string
+  avatar_url: string | null
+}
+
 export interface CreateProjectInput {
   name: string
   state?: string
   date?: string
   category?: string[]
+  person?: string[]
 }
 
 export interface CreateTaskInput {
@@ -40,6 +47,28 @@ export interface CreateTaskInput {
   endDate?: string
   priority?: string
   estimatedTime?: string
+}
+
+export interface TimeLog {
+  id: string
+  name: string
+  hours: number
+  date: string | null
+  notes: string
+  taskId: string | null
+  projectId: string | null
+  person: { id: string; name: string; avatar: string | null } | null
+  createdAt: string
+}
+
+export interface CreateTimeLogInput {
+  name: string
+  hours: number
+  date?: string
+  notes?: string
+  taskId?: string
+  projectId?: string
+  personId?: string
 }
 
 const BASE = '/api'
@@ -56,8 +85,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json()
 }
 
+export interface LoginResponse {
+  ok: boolean
+  user: { id: string; name: string; email: string; role: string }
+}
+
 export const NotionService = {
   healthCheck: () => request<{ ok: boolean; user: string }>('/health'),
+  getWorkspaceUsers: () => request<WorkspaceUser[]>('/workspace-users'),
+  login: (email: string, password: string) =>
+    request<LoginResponse>('/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
 
   // Projects
   getProjects: () => request<Project[]>('/projects'),
@@ -76,4 +113,13 @@ export const NotionService = {
     request<Task>(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteTask: (id: string) =>
     request<{ ok: boolean }>(`/tasks/${id}`, { method: 'DELETE' }),
+
+  // Time Logs
+  getTimeLogs: () => request<TimeLog[]>('/timelogs'),
+  createTimeLog: (data: CreateTimeLogInput) =>
+    request<TimeLog>('/timelogs', { method: 'POST', body: JSON.stringify(data) }),
+  updateTimeLog: (id: string, data: Partial<CreateTimeLogInput>) =>
+    request<TimeLog>(`/timelogs/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteTimeLog: (id: string) =>
+    request<{ ok: boolean }>(`/timelogs/${id}`, { method: 'DELETE' }),
 }

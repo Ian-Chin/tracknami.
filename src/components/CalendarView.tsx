@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, CheckSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Task } from '@/services/NotionService'
+import type { Task, Project } from '@/services/NotionService'
 
 interface CalendarViewProps {
   tasks: Task[]
+  projects: Project[]
 }
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -24,15 +25,17 @@ interface SpanItem {
   startDate: Date
   endDate: Date
   completed: boolean
+  projectName: string | null
 }
 
 interface SingleItem {
   id: string
   name: string
   completed: boolean
+  projectName: string | null
 }
 
-export function CalendarView({ tasks }: CalendarViewProps) {
+export function CalendarView({ tasks, projects }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
 
   const year = currentDate.getFullYear()
@@ -58,6 +61,12 @@ export function CalendarView({ tasks }: CalendarViewProps) {
     weeks.push(cells.slice(i, i + 7))
   }
 
+  const projectMap = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const p of projects) map.set(p.id, p.name)
+    return map
+  }, [projects])
+
   const { spanItems, singleItems } = useMemo(() => {
     const spans: SpanItem[] = []
     const singles: Record<string, SingleItem[]> = {}
@@ -69,6 +78,7 @@ export function CalendarView({ tasks }: CalendarViewProps) {
 
     for (const t of tasks) {
       if (!t.date) continue
+      const projectName = t.projectId ? projectMap.get(t.projectId) || null : null
       if (t.endDate && t.endDate !== t.date) {
         spans.push({
           id: t.id,
@@ -76,15 +86,16 @@ export function CalendarView({ tasks }: CalendarViewProps) {
           startDate: parseDate(t.date),
           endDate: parseDate(t.endDate),
           completed: t.completed,
+          projectName,
         })
       } else {
         const key = t.date.split('T')[0]
-        addSingle(key, { id: t.id, name: t.name, completed: t.completed })
+        addSingle(key, { id: t.id, name: t.name, completed: t.completed, projectName })
       }
     }
 
     return { spanItems: spans, singleItems: singles }
-  }, [tasks])
+  }, [tasks, projectMap])
 
   function getWeekSpans(week: (number | null)[]) {
     const weekDates: (Date | null)[] = week.map((day) =>
@@ -96,7 +107,7 @@ export function CalendarView({ tasks }: CalendarViewProps) {
     const weekStart = realDates[0]
     const weekEnd = realDates[realDates.length - 1]
 
-    const result: { id: string; name: string; colStart: number; colEnd: number; completed: boolean }[] = []
+    const result: { id: string; name: string; colStart: number; colEnd: number; completed: boolean; projectName: string | null }[] = []
 
     for (const span of spanItems) {
       if (span.endDate < weekStart || span.startDate > weekEnd) continue
@@ -114,7 +125,7 @@ export function CalendarView({ tasks }: CalendarViewProps) {
       }
 
       if (colStart !== -1 && colEnd !== -1) {
-        result.push({ id: span.id, name: span.name, colStart, colEnd, completed: span.completed })
+        result.push({ id: span.id, name: span.name, colStart, colEnd, completed: span.completed, projectName: span.projectName })
       }
     }
 
@@ -177,24 +188,31 @@ export function CalendarView({ tasks }: CalendarViewProps) {
                           gridRow: si + 1,
                         }}
                       >
-                        <div
-                          className={cn(
-                            'mx-0.5 flex items-center gap-1 rounded-md px-2 py-1 truncate',
-                            span.completed
-                              ? 'bg-emerald-500/20 border border-emerald-500/30'
-                              : 'bg-purple-500/20 border border-purple-500/30'
+                        <div className="group relative">
+                          <div
+                            className={cn(
+                              'mx-0.5 flex items-center gap-1 rounded-md px-2 py-1 truncate',
+                              span.completed
+                                ? 'bg-emerald-500/20 border border-emerald-500/30'
+                                : 'bg-purple-500/20 border border-purple-500/30'
+                            )}
+                          >
+                            <CheckSquare className={cn(
+                              'h-3 w-3 shrink-0',
+                              span.completed ? 'text-emerald-400' : 'text-purple-400'
+                            )} />
+                            <span className={cn(
+                              'text-[11px] font-medium truncate',
+                              span.completed ? 'text-emerald-400 line-through' : 'text-purple-300'
+                            )}>
+                              {span.name}
+                            </span>
+                          </div>
+                          {span.projectName && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 rounded-lg bg-[#222] border border-white/[0.15] px-2.5 py-1 text-[10px] font-medium text-white/70 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg z-30">
+                              {span.projectName}
+                            </div>
                           )}
-                        >
-                          <CheckSquare className={cn(
-                            'h-3 w-3 shrink-0',
-                            span.completed ? 'text-emerald-400' : 'text-purple-400'
-                          )} />
-                          <span className={cn(
-                            'text-[11px] font-medium truncate',
-                            span.completed ? 'text-emerald-400 line-through' : 'text-purple-300'
-                          )}>
-                            {span.name}
-                          </span>
                         </div>
                       </div>
                     ))}
@@ -242,21 +260,30 @@ export function CalendarView({ tasks }: CalendarViewProps) {
                             {items.slice(0, 3).map((item) => (
                               <div
                                 key={item.id}
-                                className={cn(
-                                  'flex items-center gap-1 rounded px-1.5 py-1 truncate',
-                                  item.completed ? 'bg-emerald-500/10' : 'bg-white/[0.06]'
-                                )}
+                                className="group relative"
                               >
-                                <CheckSquare className={cn(
-                                  'h-3 w-3 shrink-0',
-                                  item.completed ? 'text-emerald-400' : 'text-white/30'
-                                )} />
-                                <span className={cn(
-                                  'text-[11px] font-medium truncate',
-                                  item.completed ? 'text-emerald-400/70 line-through' : 'text-white/50'
-                                )}>
-                                  {item.name}
-                                </span>
+                                <div
+                                  className={cn(
+                                    'flex items-center gap-1 rounded px-1.5 py-1 truncate',
+                                    item.completed ? 'bg-emerald-500/10' : 'bg-white/[0.06]'
+                                  )}
+                                >
+                                  <CheckSquare className={cn(
+                                    'h-3 w-3 shrink-0',
+                                    item.completed ? 'text-emerald-400' : 'text-white/30'
+                                  )} />
+                                  <span className={cn(
+                                    'text-[11px] font-medium truncate',
+                                    item.completed ? 'text-emerald-400/70 line-through' : 'text-white/50'
+                                  )}>
+                                    {item.name}
+                                  </span>
+                                </div>
+                                {item.projectName && (
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 rounded-lg bg-[#222] border border-white/[0.15] px-2.5 py-1 text-[10px] font-medium text-white/70 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg z-30">
+                                    {item.projectName}
+                                  </div>
+                                )}
                               </div>
                             ))}
                             {items.length > 3 && (
