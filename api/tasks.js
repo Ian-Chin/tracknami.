@@ -1,10 +1,12 @@
-import { notion, mapTask } from './_lib/notion.js'
+import { notion, mapTask, getConfig } from './_lib/notion.js'
 
 export default async function handler(req, res) {
+  const config = await getConfig()
+
   if (req.method === 'GET') {
     try {
       const response = await notion.dataSources.query({
-        data_source_id: process.env.NOTION_TASKS_DATA_SOURCE_ID,
+        data_source_id: config.NOTION_TASKS_DATA_SOURCE_ID,
         sorts: [{ timestamp: 'created_time', direction: 'descending' }],
       })
       res.json(response.results.map(mapTask))
@@ -27,7 +29,7 @@ export default async function handler(req, res) {
       if (priority) properties.Priority = { select: { name: priority } }
       if (estimatedTime) properties['Estimated Completion Time'] = { rich_text: [{ text: { content: estimatedTime } }] }
       const page = await notion.pages.create({
-        parent: { database_id: process.env.NOTION_TASKS_DATABASE_ID },
+        parent: { database_id: config.NOTION_TASKS_DATABASE_ID },
         properties,
       })
       res.json(mapTask(page))

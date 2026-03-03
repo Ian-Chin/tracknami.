@@ -1,10 +1,12 @@
-import { notion, mapProject } from './_lib/notion.js'
+import { notion, mapProject, getConfig } from './_lib/notion.js'
 
 export default async function handler(req, res) {
+  const config = await getConfig()
+
   if (req.method === 'GET') {
     try {
       const response = await notion.dataSources.query({
-        data_source_id: process.env.NOTION_PROJECTS_DATA_SOURCE_ID,
+        data_source_id: config.NOTION_PROJECTS_DATA_SOURCE_ID,
         sorts: [{ timestamp: 'created_time', direction: 'descending' }],
       })
       res.json(response.results.map(mapProject))
@@ -26,7 +28,7 @@ export default async function handler(req, res) {
         properties.Person = { people: person.map(id => ({ id })) }
       }
       const page = await notion.pages.create({
-        parent: { database_id: process.env.NOTION_PROJECTS_DATABASE_ID },
+        parent: { database_id: config.NOTION_PROJECTS_DATABASE_ID },
         properties,
       })
       res.json(mapProject(page))

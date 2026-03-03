@@ -2,6 +2,24 @@ import { Client } from '@notionhq/client'
 
 export const notion = new Client({ auth: process.env.NOTION_TOKEN })
 
+// Config loaded from Notion config database (cached per cold start)
+let _configCache = null
+
+export async function getConfig() {
+  if (_configCache) return _configCache
+  const response = await notion.dataSources.query({
+    data_source_id: process.env.NOTION_CONFIG_DATA_SOURCE_ID,
+  })
+  const config = {}
+  for (const page of response.results) {
+    const key = page.properties.Name?.title?.[0]?.plain_text
+    const value = page.properties.Value?.rich_text?.[0]?.plain_text
+    if (key && value) config[key] = value
+  }
+  _configCache = config
+  return config
+}
+
 export function mapProject(page) {
   const props = page.properties
   return {

@@ -1,10 +1,12 @@
-import { notion, mapTimeLog } from './_lib/notion.js'
+import { notion, mapTimeLog, getConfig } from './_lib/notion.js'
 
 export default async function handler(req, res) {
+  const config = await getConfig()
+
   if (req.method === 'GET') {
     try {
       const response = await notion.dataSources.query({
-        data_source_id: process.env.NOTION_TIMELOG_DATA_SOURCE_ID,
+        data_source_id: config.NOTION_TIMELOG_DATA_SOURCE_ID,
         sorts: [{ timestamp: 'created_time', direction: 'descending' }],
       })
       res.json(response.results.map(mapTimeLog))
@@ -24,7 +26,7 @@ export default async function handler(req, res) {
       if (projectId) properties.Project = { relation: [{ id: projectId }] }
       if (personId) properties.Person = { people: [{ id: personId }] }
       const page = await notion.pages.create({
-        parent: { database_id: process.env.NOTION_TIMELOG_DATABASE_ID },
+        parent: { database_id: config.NOTION_TIMELOG_DATABASE_ID },
         properties,
       })
       res.json(mapTimeLog(page))
