@@ -7,6 +7,9 @@ export default async function handler(req, res) {
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' })
     }
+    if (!process.env.NOTION_USERS_DATA_SOURCE_ID) {
+      return res.status(500).json({ error: 'NOTION_USERS_DATA_SOURCE_ID is not set' })
+    }
     const response = await notion.dataSources.query({
       data_source_id: process.env.NOTION_USERS_DATA_SOURCE_ID,
     })
