@@ -179,18 +179,18 @@ export function CalendarView({ tasks }: CalendarViewProps) {
                       >
                         <div
                           className={cn(
-                            'mx-0.5 flex items-center gap-1 rounded-md px-1.5 py-0.5 truncate',
+                            'mx-0.5 flex items-center gap-1 rounded-md px-2 py-1 truncate',
                             span.completed
                               ? 'bg-emerald-500/20 border border-emerald-500/30'
                               : 'bg-purple-500/20 border border-purple-500/30'
                           )}
                         >
                           <CheckSquare className={cn(
-                            'h-2.5 w-2.5 shrink-0',
+                            'h-3 w-3 shrink-0',
                             span.completed ? 'text-emerald-400' : 'text-purple-400'
                           )} />
                           <span className={cn(
-                            'text-[9px] font-medium truncate',
+                            'text-[11px] font-medium truncate',
                             span.completed ? 'text-emerald-400 line-through' : 'text-purple-300'
                           )}>
                             {span.name}
@@ -234,7 +234,7 @@ export function CalendarView({ tasks }: CalendarViewProps) {
                         </div>
 
                         {spanCount > 0 && (
-                          <div style={{ height: spanCount * 18 }} />
+                          <div style={{ height: spanCount * 24 }} />
                         )}
 
                         {items && (
@@ -243,16 +243,16 @@ export function CalendarView({ tasks }: CalendarViewProps) {
                               <div
                                 key={item.id}
                                 className={cn(
-                                  'flex items-center gap-1 rounded px-1 py-0.5 truncate',
+                                  'flex items-center gap-1 rounded px-1.5 py-1 truncate',
                                   item.completed ? 'bg-emerald-500/10' : 'bg-white/[0.06]'
                                 )}
                               >
                                 <CheckSquare className={cn(
-                                  'h-2.5 w-2.5 shrink-0',
+                                  'h-3 w-3 shrink-0',
                                   item.completed ? 'text-emerald-400' : 'text-white/30'
                                 )} />
                                 <span className={cn(
-                                  'text-[9px] font-medium truncate',
+                                  'text-[11px] font-medium truncate',
                                   item.completed ? 'text-emerald-400/70 line-through' : 'text-white/50'
                                 )}>
                                   {item.name}
@@ -260,7 +260,7 @@ export function CalendarView({ tasks }: CalendarViewProps) {
                               </div>
                             ))}
                             {items.length > 3 && (
-                              <span className="text-[8px] text-white/25 px-1">
+                              <span className="text-[10px] text-white/25 px-1">
                                 +{items.length - 3} more
                               </span>
                             )}

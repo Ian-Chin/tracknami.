@@ -3,7 +3,7 @@ import {
   ListChecks,
   CalendarDays,
   Users,
-  Zap,
+
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
@@ -12,10 +12,10 @@ import { cn } from '@/lib/utils'
 export type Page = 'projects' | 'tasks' | 'calendar' | 'people' | 'login'
 
 const navItems: { icon: typeof FolderKanban; label: string; page?: Page }[] = [
+  { icon: Users, label: 'People', page: 'people' },
   { icon: FolderKanban, label: 'Projects', page: 'projects' },
   { icon: ListChecks, label: 'Tasks', page: 'tasks' },
   { icon: CalendarDays, label: 'Calendar', page: 'calendar' },
-  { icon: Users, label: 'People', page: 'people' },
 ]
 
 interface SidebarProps {
@@ -36,15 +36,8 @@ export function Sidebar({ collapsed, onToggle, activePage, onNavigate }: Sidebar
       <div className="absolute top-0 left-0 right-0 h-40 bg-linear-to-b from-white/[0.03] to-transparent pointer-events-none" />
 
       <div className="relative flex h-16 items-center justify-between border-b border-white/[0.08] px-4">
-        <div className="flex items-center gap-3">
-          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white animate-glow-pulse">
-            <Zap className="h-4 w-4 text-black" />
-          </div>
-          {!collapsed && (
-            <span className="text-sm font-semibold tracking-tight text-white animate-fade-in">
-              Nexus
-            </span>
-          )}
+        <div className="flex items-center">
+          <img src="/logo.png" alt="Logo" className="h-30 shrink-0 object-contain" />
         </div>
         <button
           onClick={onToggle}
