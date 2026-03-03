@@ -55,8 +55,9 @@ export function useTasks() {
     try {
       const updated = await NotionService.updateTask(id, data)
       setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)))
-    } catch {
+    } catch (err) {
       setTasks((prev) => prev.map((t) => (t.id === id ? original : t)))
+      throw err
     }
   }
 

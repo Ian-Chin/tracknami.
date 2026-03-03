@@ -57,8 +57,9 @@ export function useProjects() {
     try {
       const updated = await NotionService.updateProject(id, data)
       setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)))
-    } catch {
+    } catch (err) {
       setProjects((prev) => prev.map((p) => (p.id === id ? original : p)))
+      throw err
     }
   }
 

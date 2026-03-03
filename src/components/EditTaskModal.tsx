@@ -17,6 +17,7 @@ export function EditTaskModal({ task, onClose, onSubmit, projects }: EditTaskMod
   const [endDate, setEndDate] = useState('')
   const [estimatedTime, setEstimatedTime] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (task) {
@@ -35,6 +36,7 @@ export function EditTaskModal({ task, onClose, onSubmit, projects }: EditTaskMod
     e.preventDefault()
     if (!name.trim()) return
     setSubmitting(true)
+    setError(null)
     try {
       await onSubmit(task.id, {
         name: name.trim(),
@@ -45,6 +47,8 @@ export function EditTaskModal({ task, onClose, onSubmit, projects }: EditTaskMod
         estimatedTime: estimatedTime.trim() || undefined,
       })
       onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save changes')
     } finally {
       setSubmitting(false)
     }
@@ -61,6 +65,10 @@ export function EditTaskModal({ task, onClose, onSubmit, projects }: EditTaskMod
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        {error && (
+          <div className="mt-4 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">{error}</div>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>

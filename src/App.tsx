@@ -185,7 +185,7 @@ function App() {
               loading={projLoading}
               onDelete={deleteProject}
               onEdit={setEditingProject}
-              onStateChange={(id, state) => updateProject(id, { state })}
+              onStateChange={(id, state) => updateProject(id, { state }).catch(() => {})}
             />
           )}
 
@@ -196,7 +196,7 @@ function App() {
               loading={taskLoading}
               onDelete={deleteTask}
               onEdit={setEditingTask}
-              onToggleComplete={(id, completed) => updateTask(id, { completed })}
+              onToggleComplete={(id, completed) => updateTask(id, { completed }).catch(() => {})}
             />
           )}
 

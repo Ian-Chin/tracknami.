@@ -18,6 +18,7 @@ export function EditProjectModal({ project, onClose, onSubmit, workspaceUsers }:
   const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([])
   const [personDropdownOpen, setPersonDropdownOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (project) {
@@ -41,6 +42,7 @@ export function EditProjectModal({ project, onClose, onSubmit, workspaceUsers }:
     e.preventDefault()
     if (!name.trim()) return
     setSubmitting(true)
+    setError(null)
     try {
       const category = categoryInput.trim()
         ? categoryInput.split(',').map((c) => c.trim()).filter(Boolean)
@@ -52,6 +54,8 @@ export function EditProjectModal({ project, onClose, onSubmit, workspaceUsers }:
         category,
       })
       onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save changes')
     } finally {
       setSubmitting(false)
     }
@@ -70,6 +74,10 @@ export function EditProjectModal({ project, onClose, onSubmit, workspaceUsers }:
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        {error && (
+          <div className="mt-4 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">{error}</div>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
