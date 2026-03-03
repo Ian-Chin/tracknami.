@@ -8,14 +8,26 @@ app.use(cors())
 app.use(express.json())
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN })
+const CONFIG_DATA_SOURCE_ID = process.env.NOTION_CONFIG_DATA_SOURCE_ID
 
-const PROJECTS_DATABASE_ID = process.env.NOTION_PROJECTS_DATABASE_ID
-const PROJECTS_DATA_SOURCE_ID = process.env.NOTION_PROJECTS_DATA_SOURCE_ID
-const TASKS_DATABASE_ID = process.env.NOTION_TASKS_DATABASE_ID
-const TASKS_DATA_SOURCE_ID = process.env.NOTION_TASKS_DATA_SOURCE_ID
-const TIMELOG_DATABASE_ID = process.env.NOTION_TIMELOG_DATABASE_ID
-const TIMELOG_DATA_SOURCE_ID = process.env.NOTION_TIMELOG_DATA_SOURCE_ID
-const USERS_DATA_SOURCE_ID = process.env.NOTION_USERS_DATA_SOURCE_ID
+// Config loaded from Notion on startup
+const config = {}
+
+async function loadConfig() {
+  console.log('Loading config from Notion...')
+  const response = await notion.dataSources.query({
+    data_source_id: CONFIG_DATA_SOURCE_ID,
+  })
+  for (const page of response.results) {
+    const key = page.properties.Name?.title?.[0]?.plain_text
+    const value = page.properties.Value?.rich_text?.[0]?.plain_text
+    if (key && value) {
+      config[key] = value
+      console.log(`  ${key} = ${value.slice(0, 8)}...`)
+    }
+  }
+  console.log(`Loaded ${Object.keys(config).length} config entries.`)
+}
 
 // Health check
 app.get('/api/health', async (_req, res) => {
@@ -36,7 +48,7 @@ app.post('/api/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' })
     }
     const response = await notion.dataSources.query({
-      data_source_id: USERS_DATA_SOURCE_ID,
+      data_source_id: config.NOTION_USERS_DATA_SOURCE_ID,
     })
     const user = response.results.find(
       (r) => r.properties.Email?.email === email
@@ -81,7 +93,7 @@ app.get('/api/workspace-users', async (_req, res) => {
 app.get('/api/projects', async (_req, res) => {
   try {
     const response = await notion.dataSources.query({
-      data_source_id: PROJECTS_DATA_SOURCE_ID,
+      data_source_id: config.NOTION_PROJECTS_DATA_SOURCE_ID,
       sorts: [{ timestamp: 'created_time', direction: 'descending' }],
     })
     const projects = response.results.map(mapProject)
@@ -106,7 +118,7 @@ app.post('/api/projects', async (req, res) => {
       properties.Person = { people: person.map(id => ({ id })) }
     }
     const page = await notion.pages.create({
-      parent: { database_id: PROJECTS_DATABASE_ID },
+      parent: { database_id: config.NOTION_PROJECTS_DATABASE_ID },
       properties,
     })
     res.json(mapProject(page))
@@ -146,7 +158,7 @@ app.delete('/api/projects/:id', async (req, res) => {
 app.get('/api/tasks', async (_req, res) => {
   try {
     const response = await notion.dataSources.query({
-      data_source_id: TASKS_DATA_SOURCE_ID,
+      data_source_id: config.NOTION_TASKS_DATA_SOURCE_ID,
       sorts: [{ timestamp: 'created_time', direction: 'descending' }],
     })
     const tasks = response.results.map(mapTask)
@@ -173,7 +185,7 @@ app.post('/api/tasks', async (req, res) => {
     if (estimatedTime) properties['Estimated Completion Time'] = { rich_text: [{ text: { content: estimatedTime } }] }
 
     const page = await notion.pages.create({
-      parent: { database_id: TASKS_DATABASE_ID },
+      parent: { database_id: config.NOTION_TASKS_DATABASE_ID },
       properties,
     })
     res.json(mapTask(page))
@@ -222,7 +234,7 @@ app.delete('/api/tasks/:id', async (req, res) => {
 app.get('/api/timelogs', async (_req, res) => {
   try {
     const response = await notion.dataSources.query({
-      data_source_id: TIMELOG_DATA_SOURCE_ID,
+      data_source_id: config.NOTION_TIMELOG_DATA_SOURCE_ID,
       sorts: [{ timestamp: 'created_time', direction: 'descending' }],
     })
     const logs = response.results.map(mapTimeLog)
@@ -246,7 +258,7 @@ app.post('/api/timelogs', async (req, res) => {
     if (personId) properties.Person = { people: [{ id: personId }] }
 
     const page = await notion.pages.create({
-      parent: { database_id: TIMELOG_DATABASE_ID },
+      parent: { database_id: config.NOTION_TIMELOG_DATABASE_ID },
       properties,
     })
     res.json(mapTimeLog(page))
@@ -333,5 +345,13 @@ function mapTimeLog(page) {
   }
 }
 
+// Load config from Notion, then start server
 const PORT = 3001
-app.listen(PORT, () => console.log(`API server running on http://localhost:${PORT}`))
+loadConfig()
+  .then(() => {
+    app.listen(PORT, () => console.log(`API server running on http://localhost:${PORT}`))
+  })
+  .catch((err) => {
+    console.error('Failed to load config from Notion:', err.message)
+    process.exit(1)
+  })
