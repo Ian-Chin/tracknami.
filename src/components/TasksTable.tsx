@@ -23,9 +23,12 @@ const priorityStyles: Record<string, { bg: string; text: string; label: string }
 
 export function TasksTable({ tasks, projects, loading, onDelete, onEdit, onToggleComplete }: TasksTableProps) {
   const [currentPage, setCurrentPage] = useState(1)
-  const totalPages = Math.ceil(tasks.length / PAGE_SIZE)
+  const [filter, setFilter] = useState<'all' | 'done' | 'todo'>('all')
+
+  const filtered = filter === 'all' ? tasks : tasks.filter((t) => filter === 'done' ? t.completed : !t.completed)
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
   const safePage = Math.min(currentPage, Math.max(1, totalPages))
-  const paginated = tasks.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   if (safePage !== currentPage) setCurrentPage(safePage)
 
@@ -62,12 +65,20 @@ export function TasksTable({ tasks, projects, loading, onDelete, onEdit, onToggl
         <div className="flex items-center justify-between border-b border-white/[0.08] px-5 py-3.5">
           <h2 className="text-sm font-semibold text-white/80">Tasks</h2>
           <div className="flex items-center gap-2">
-            <span className="rounded-lg bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
-              {tasks.filter((t) => t.completed).length} done
-            </span>
-            <span className="rounded-lg bg-white/[0.06] px-2.5 py-1 text-[11px] font-mono font-medium text-white/40">
-              {tasks.length}
-            </span>
+            {(['all', 'todo', 'done'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => { setFilter(f); setCurrentPage(1) }}
+                className={cn(
+                  'rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all',
+                  filter === f
+                    ? f === 'done' ? 'bg-emerald-500/15 text-emerald-400' : f === 'todo' ? 'bg-amber-500/15 text-amber-400' : 'bg-white/[0.1] text-white/70'
+                    : 'text-white/30 hover:text-white/50'
+                )}
+              >
+                {f === 'all' ? `All (${tasks.length})` : f === 'done' ? `Done (${tasks.filter((t) => t.completed).length})` : `To Do (${tasks.filter((t) => !t.completed).length})`}
+              </button>
+            ))}
           </div>
         </div>
 

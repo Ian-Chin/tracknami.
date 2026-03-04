@@ -11,6 +11,7 @@ import { AddTaskModal } from '@/components/AddTaskModal'
 import { AddTimeLogModal } from '@/components/AddTimeLogModal'
 import { EditProjectModal } from '@/components/EditProjectModal'
 import { EditTaskModal } from '@/components/EditTaskModal'
+import { ProjectDetailView } from '@/components/ProjectDetailView'
 import { LoginPage } from '@/components/LoginPage'
 import type { Project, Task } from '@/services/NotionService'
 import { useProjects } from '@/hooks/useProjects'
@@ -27,6 +28,7 @@ function App() {
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [activePage, setActivePage] = useState<Page>(() =>
     localStorage.getItem('tracknami_logged_in') ? 'projects' : 'login'
   )
@@ -109,7 +111,7 @@ function App() {
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         activePage={activePage}
-        onNavigate={setActivePage}
+        onNavigate={(page) => { setActivePage(page); setSelectedProject(null) }}
       />
 
       <main
@@ -179,13 +181,26 @@ function App() {
             </div>
           </div>
 
-          {activePage === 'projects' && (
+          {activePage === 'projects' && !selectedProject && (
             <ProjectsTable
               projects={filteredProjects}
               loading={projLoading}
               onDelete={deleteProject}
               onEdit={setEditingProject}
               onStateChange={(id, state) => updateProject(id, { state }).catch(() => {})}
+              onSelect={setSelectedProject}
+            />
+          )}
+
+          {activePage === 'projects' && selectedProject && (
+            <ProjectDetailView
+              project={projects.find((p) => p.id === selectedProject.id) || selectedProject}
+              tasks={tasks}
+              onBack={() => setSelectedProject(null)}
+              onAddTask={() => setTaskModalOpen(true)}
+              onToggleComplete={(id, completed) => updateTask(id, { completed }).catch(() => {})}
+              onEditTask={setEditingTask}
+              onDeleteTask={deleteTask}
             />
           )}
 
@@ -232,6 +247,7 @@ function App() {
         onClose={() => setTaskModalOpen(false)}
         onSubmit={addTask}
         projects={projects}
+        defaultProjectId={selectedProject?.id}
       />
 
       <AddTimeLogModal

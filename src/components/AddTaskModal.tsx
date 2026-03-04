@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import type { CreateTaskInput, Project } from '@/services/NotionService'
 
@@ -7,16 +7,21 @@ interface AddTaskModalProps {
   onClose: () => void
   onSubmit: (data: CreateTaskInput) => Promise<unknown>
   projects: Project[]
+  defaultProjectId?: string
 }
 
-export function AddTaskModal({ open, onClose, onSubmit, projects }: AddTaskModalProps) {
+export function AddTaskModal({ open, onClose, onSubmit, projects, defaultProjectId }: AddTaskModalProps) {
   const [name, setName] = useState('')
-  const [projectId, setProjectId] = useState('')
+  const [projectId, setProjectId] = useState(defaultProjectId || '')
   const [priority, setPriority] = useState('')
   const [date, setDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [estimatedTime, setEstimatedTime] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (open && defaultProjectId) setProjectId(defaultProjectId)
+  }, [open, defaultProjectId])
 
   if (!open) return null
 

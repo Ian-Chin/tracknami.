@@ -17,6 +17,15 @@ export function TimeLogPage({ timeLogs, tasks, projects, loading, onDelete }: Ti
 
   const totalHours = useMemo(() => timeLogs.reduce((sum, l) => sum + l.hours, 0), [timeLogs])
 
+  const sortedLogs = useMemo(() =>
+    [...timeLogs].sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0
+      const dateB = b.date ? new Date(b.date).getTime() : 0
+      return dateB - dateA
+    }),
+    [timeLogs]
+  )
+
   if (loading) {
     return (
       <div className="glow-card">
@@ -88,7 +97,7 @@ export function TimeLogPage({ timeLogs, tasks, projects, loading, onDelete }: Ti
                 </tr>
               </thead>
               <tbody>
-                {timeLogs.map((log, i) => (
+                {sortedLogs.map((log, i) => (
                   <tr
                     key={log.id}
                     className={cn(

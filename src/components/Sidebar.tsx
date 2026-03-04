@@ -48,7 +48,7 @@ export function Sidebar({ collapsed, onToggle, activePage, onNavigate }: Sidebar
         </button>
       </div>
 
-      <nav className="mt-6 flex flex-col gap-1 px-3">
+      <nav className="mt-6 flex flex-col gap-1.5 px-3">
         {!collapsed && (
           <span className="mb-2 px-3 text-[10px] font-medium uppercase tracking-[0.15em] text-white/25">
             Navigation
@@ -61,7 +61,7 @@ export function Sidebar({ collapsed, onToggle, activePage, onNavigate }: Sidebar
               key={item.label}
               onClick={() => item.page && onNavigate(item.page)}
               className={cn(
-                'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200 animate-slide-in-left',
+                'group relative flex items-center gap-3.5 rounded-xl px-4 py-3.5 text-[15px] font-medium transition-all duration-200 animate-slide-in-left',
                 `stagger-${i + 1}`,
                 isActive ? 'text-white' : 'text-white/40 hover:text-white/80',
                 !item.page && 'opacity-30 cursor-not-allowed'
@@ -73,7 +73,7 @@ export function Sidebar({ collapsed, onToggle, activePage, onNavigate }: Sidebar
               {!isActive && item.page && (
                 <div className="absolute inset-0 rounded-xl bg-white/[0.04] opacity-0 transition-opacity group-hover:opacity-100" />
               )}
-              <item.icon className="relative z-10 h-4 w-4 shrink-0" />
+              <item.icon className="relative z-10 h-5 w-5 shrink-0" />
               {!collapsed && <span className="relative z-10">{item.label}</span>}
               {isActive && (
                 <div className="absolute right-3 h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.6)]" />

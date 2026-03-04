@@ -11,6 +11,7 @@ interface ProjectsTableProps {
   onDelete: (id: string) => void
   onEdit: (project: Project) => void
   onStateChange: (id: string, state: string) => void
+  onSelect?: (project: Project) => void
 }
 
 const stateStyles: Record<string, { bg: string; text: string; dot: string }> = {
@@ -21,7 +22,7 @@ const stateStyles: Record<string, { bg: string; text: string; dot: string }> = {
 
 const STATES = ['Not Start', 'In Progress', 'Completed']
 
-export function ProjectsTable({ projects, loading, onDelete, onEdit, onStateChange }: ProjectsTableProps) {
+export function ProjectsTable({ projects, loading, onDelete, onEdit, onStateChange, onSelect }: ProjectsTableProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const totalPages = Math.ceil(projects.length / PAGE_SIZE)
   const safePage = Math.min(currentPage, Math.max(1, totalPages))
@@ -89,7 +90,12 @@ export function ProjectsTable({ projects, loading, onDelete, onEdit, onStateChan
                     )}
                   >
                     <td className="px-5 py-3.5">
-                      <span className="text-sm font-medium text-white/90">{project.name}</span>
+                      <button
+                        onClick={() => onSelect?.(project)}
+                        className="text-sm font-medium text-white/90 transition-all hover:text-white hover:underline underline-offset-2 text-left"
+                      >
+                        {project.name}
+                      </button>
                     </td>
                     <td className="px-5 py-3.5">
                       <button
